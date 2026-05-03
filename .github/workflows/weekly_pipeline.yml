@@ -1,0 +1,64 @@
+name: Weekly Macro Dashboard Pipeline
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday at 06:00 UTC
+  workflow_dispatch:      # Allow manual trigger from Actions tab
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run 01_ingest
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          papermill notebooks/01_ingest.ipynb notebooks/01_ingest_out.ipynb \
+            -p run_date "$(date -u +%Y-%m-%d)"
+
+      - name: Run 02_transform
+        run: |
+          papermill notebooks/02_transform.ipynb notebooks/02_transform_out.ipynb \
+            -p run_date "$(date -u +%Y-%m-%d)"
+
+      - name: Run 03_model
+        run: |
+          papermill notebooks/03_model.ipynb notebooks/03_model_out.ipynb \
+            -p run_date "$(date -u +%Y-%m-%d)"
+
+      - name: Run 04_render
+        run: |
+          papermill notebooks/04_render.ipynb notebooks/04_render_out.ipynb \
+            -p run_date "$(date -u +%Y-%m-%d)"
+
+      - name: Commit outputs and docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/ data/outputs/
+          git diff --staged --quiet || git commit -m "chore: weekly pipeline run $(date -u +%Y-%m-%d)"
+          git push
+
+      - name: Deploy docs to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          publish_branch: gh-pages

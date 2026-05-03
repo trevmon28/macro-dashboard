@@ -1,0 +1,14 @@
+pandas
+requests
+wbdata
+imf-reader
+plotly
+papermill
+pyarrow
+jupyterlab
+nbformat
+pycountry
+fredapi
+scipy
+scikit-learn
+numpy

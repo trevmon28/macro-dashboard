@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+*.pyc
+*.pyo
+
+# Virtual environments
+macro_env/
+venv/
+.venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*_out.ipynb
+
+# Environment / secrets
+.env
+.env.local
+*.env
+
+# Raw and intermediate data (large files, not committed)
+data/raw/*
+data/processed/*
+data/outputs/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/outputs/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

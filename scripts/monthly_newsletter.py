@@ -209,8 +209,7 @@ def inflation_text(snap):
         )
     elif code == 1:
         what_it_means = (
-            f"Inflation is running <strong>above its long-run average</strong> (about "
-            f"{abs(z):.1f} standard deviations above, for those who want the stat). "
+            "Inflation is running <strong>above its long-run average</strong>. "
             "That means the Fed is less likely to cut rates aggressively, and borrowing "
             "costs — for mortgages, car loans, business credit — tend to stay higher for longer."
         )

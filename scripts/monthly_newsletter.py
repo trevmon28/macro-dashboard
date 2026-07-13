@@ -90,6 +90,13 @@ body { margin:0; padding:0; background:#f3f4f6; font-family:Georgia,serif; color
 .expert-card .expert-role { font-size:11px; color:#64748b; letter-spacing:.04em; text-transform:uppercase; display:block; margin-top:2px; }
 .expert-card .verdict { font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:#0284c7; margin-bottom:8px; display:block; }
 .expert-card p { margin:0; font-size:14px; line-height:1.7; color:#374151; font-style:italic; }
+.voices { display:flex; flex-direction:column; gap:14px; }
+.voice-card { padding:16px 20px 14px; border-left:3px solid #0f172a; background:#f8fafc; }
+.voice-card blockquote { margin:0 0 10px; font-size:15px; line-height:1.75; color:#1f2937; font-style:italic; }
+.voice-card .attr { font-size:12px; color:#64748b; line-height:1.5; }
+.voice-card .attr strong { color:#0f172a; font-style:normal; display:block; margin-bottom:1px; }
+.voice-card .attr a { color:#0284c7; font-size:11px; text-decoration:none; }
+.voice-card .attr a:hover { text-decoration:underline; }
 """
 
 
@@ -676,6 +683,59 @@ def expert_commentary_html(snap):
 
 
 # ---------------------------------------------------------------------------
+# Voices — real quotes from global economic leaders (update each issue)
+# ---------------------------------------------------------------------------
+
+VOICES = [
+    {
+        "quote": (
+            "If there were people in the household or the business sector and the financial "
+            "markets who thought that this central bank was going to be comfortable with an "
+            "inflation objective above 2%, well, I guess they'd be disappointed."
+        ),
+        "name": "Kevin Warsh",
+        "title": "Chair, Federal Reserve",
+        "context": "ECB Forum on Central Banking, Sintra — July 1, 2026",
+        "source": "https://finance.yahoo.com/economy/policy/article/kevin-warsh-fed-will-not-be-comfortable-with-inflation-above-2-183000837.html",
+    },
+    {
+        "quote": (
+            "Resilience means the ECB can raise rates to address inflation without fear "
+            "it becomes a source of financial stress."
+        ),
+        "name": "Christine Lagarde",
+        "title": "President, European Central Bank",
+        "context": "ECB Forum on Central Banking, Sintra — June 29, 2026",
+        "source": "https://www.ecb.europa.eu/press/key/date/2026/html/ecb.sp260629~cb5a2e2168.en.html",
+    },
+    {
+        "quote": (
+            "You can't afford not to deepen trade relations with other countries out there."
+        ),
+        "name": "Pierre-Olivier Gourinchas",
+        "title": "Economic Counsellor (outgoing), International Monetary Fund",
+        "context": "On trade fragmentation and EU agreements with Latin America and India — June 2026",
+        "source": "https://www.investing.com/news/economy-news/outgoing-imf-chief-economist-sees-risks-shifting-trade-ties-and-continued-uncertainty-on-global-outlook-4763560",
+    },
+]
+
+
+def voices_html():
+    cards = ""
+    for v in VOICES:
+        cards += (
+            f'<div class="voice-card">'
+            f'<blockquote>&#8220;{v["quote"]}&#8221;</blockquote>'
+            f'<div class="attr">'
+            f'<strong>{v["name"]} &nbsp;&middot;&nbsp; {v["title"]}</strong>'
+            f'<a href="{v["source"]}">{v["context"]}</a>'
+            f'</div>'
+            f'</div>'
+        )
+    return f'<div class="voices">{cards}</div>'
+
+
+# ---------------------------------------------------------------------------
 # HTML renderer
 # ---------------------------------------------------------------------------
 
@@ -809,9 +869,9 @@ def render_html(snap, ind, sb, issue_number, issue_date):
   </div>
 
   <div class="sec">
-    <h2>Expert Commentary</h2>
-    <p class="sub">Independent perspectives from leading economists — faux review panel</p>
-    {expert_commentary_html(snap)}
+    <h2>Voices</h2>
+    <p class="sub">What global economic leaders are saying this month</p>
+    {voices_html()}
   </div>
 
   <div class="sec">

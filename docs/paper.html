@@ -59,15 +59,17 @@ ol.refs li{margin-bottom:10px;line-height:1.6}
 
 <div class="ab">
 <h2>Abstract</h2>
-<p>We present a practitioner-oriented framework for systematic macroeconomic regime detection, integrating yield curve dynamics, recession probability estimation, inflation regime classification, and a composite risk score. The yield curve component tracks the 10-year&ndash;2-year and 10-year&ndash;3-month Treasury spreads, flagging inversions sustained for three or more consecutive months as recessionary precursors. Recession probabilities are estimated via the Estrella-Mishkin (1996) probit model, which relates the 10-year&ndash;3-month spread to NBER-dated recessions with documented in-sample accuracy. Inflation regimes are classified using a rolling 20-year z-score of CPI year-over-year growth, bucketed into four labeled states. The composite risk score synthesizes credit spreads, real 10-year yields, and the yield curve into a single indicator on [&minus;1,&nbsp;+1]. Cross-country context is provided via a 12-economy scoreboard drawing on IMF, World Bank, and OECD data. The system runs weekly via GitHub Actions and is exposed as a live MCP server accessible to AI assistants. As of July 2026: yield curve not inverted, recession probability 20.6% (Moderate), inflation regime Elevated (z-score +0.85), risk score +0.43 (Risk-On).</p>
+<p>The Global Macro Dashboard is a weekly-updating economic health check built entirely from free public data. It tracks five signals: the U.S. Treasury yield curve, a model-based recession probability, an inflation regime label, a composite financial conditions score, and a 12-country economic scoreboard. The yield curve inversion signal and recession probability draw on the Estrella-Mishkin (1996) probit model; inflation is classified via a rolling 20-year z-score of CPI growth; the risk score combines credit spreads, real yields, and curve shape into a single number between &minus;1 and +1. The whole pipeline runs automatically every Monday via GitHub Actions and is queryable in plain English through a live MCP server connected to AI assistants. As of July 2026: yield curve not inverted (10y&ndash;2y spread +0.38%), recession probability 20.6%, inflation regime Elevated, risk score +0.43 (Risk-On).</p>
 <p class="kw"><strong>Keywords:</strong> yield curve inversion, recession probability, inflation regime, composite risk scoring, macro regime detection, systematic investment framework</p>
 </div>
 
 <h2 class="st">1. Introduction</h2>
-<p>Macroeconomic regime detection is a foundational task for systematic investors, risk managers, and quantitative strategists. While discretionary macro analysis has long dominated practitioner discourse, the proliferation of freely available public data &mdash; through FRED, the World Bank Open Data API, and the IMF World Economic Outlook &mdash; has enabled repeatable, auditable, and automatable approaches to regime monitoring.</p>
-<p>The challenge is not data availability but signal aggregation. No single indicator reliably presages economic regime transitions. This paper presents a framework synthesizing yield curve shape, inflation dynamics, credit conditions, and global growth into a coherent, weekly-updated view, implemented as an open-source Python pipeline and deployed as a live MCP server enabling natural-language macro queries through AI assistants.</p>
+<p>Macro investing runs mostly on gut calls dressed up in charts. The same yield curve inverts, the same pundits argue about whether <em>this time is different</em>, and by the time anyone reaches consensus the trade has already moved.</p>
+<p>The question that motivated this project was simpler: can you build a systematic, rule-based macro early-warning system using only free public data? No Bloomberg terminal, no proprietary feeds &mdash; just FRED, the World Bank, and the IMF, stitched together with Python and running weekly on GitHub Actions.</p>
+<p>The answer is yes, with caveats. This paper documents what was built, how each piece works, and where the models have real limitations worth understanding before acting on their output.</p>
 
 <h2 class="st">2. Data Sources</h2>
+<p>Everything here comes from public APIs. No paywalls, no vendor contracts. The four sources below cover U.S. macro indicators at high frequency and cross-country fundamentals at lower frequency.</p>
 <table>
 <tr><th>Source</th><th>Indicators</th><th>Access</th><th>Frequency</th></tr>
 <tr><td>FRED (St. Louis Fed)</td><td>Treasury yields, CPI, HY credit spread, real rates</td><td><code>fredapi</code></td><td>Daily / Monthly</td></tr>
@@ -76,22 +78,26 @@ ol.refs li{margin-bottom:10px;line-height:1.6}
 <tr><td>OECD / Central Banks</td><td>Policy interest rates</td><td><code>wbdata</code></td><td>Varies</td></tr>
 </table>
 <p class="tc">Table 1. Data sources and access methods.</p>
+<p>One thing to flag upfront: the cross-country data from the World Bank and IMF can lag reality by one to two years. That matters for how to read the country scoreboard &mdash; it tells you about structural conditions, not last quarter.</p>
 
 <h2 class="st">3. Yield Curve Dynamics</h2>
-<h3 class="ss">3.1 Spread Construction</h3>
-<p>Two Treasury yield spreads are computed from FRED series <code>GS10</code>, <code>GS2</code>, and <code>TB3MS</code>:</p>
+<h3 class="ss">3.1 What the Yield Curve Is and Why It Matters</h3>
+<p>The yield curve is one of the most reliable macro indicators ever documented, and the reason is intuitive. When short-term interest rates exceed long-term rates &mdash; an "inversion" &mdash; it usually means the Fed has tightened policy hard and bond markets are pricing in rate cuts ahead. Rate cuts happen when the economy weakens. So a sustained inversion is the bond market quietly predicting a slowdown.</p>
+<p>The dashboard tracks two spreads: the 10-year minus 2-year, which gets the most media attention, and the 10-year minus 3-month, which the academic literature (especially Estrella &amp; Mishkin 1996) treats as the more theoretically clean predictor. Both are computed from FRED series <code>GS10</code>, <code>GS2</code>, and <code>TB3MS</code>:</p>
 <div class="eq"><span class="eql">(1)</span>\[ s_{10y2y,t} = y_{10y,t} - y_{2y,t} \]</div>
 <div class="eq"><span class="eql">(2)</span>\[ s_{10y3m,t} = y_{10y,t} - y_{3m,t} \]</div>
 
-<h3 class="ss">3.2 Inversion Signal</h3>
-<p>A binary inversion signal activates when \(s_{10y2y,t}\) remains below zero for three or more consecutive months:</p>
+<h3 class="ss">3.2 Calling an Inversion</h3>
+<p>A single month below zero doesn't count &mdash; month-end rate moves can be noisy. The inversion signal only fires after three consecutive months with the 10y&ndash;2y spread negative:</p>
 <div class="eq"><span class="eql">(3)</span>\[ \text{inv}_t = \mathbf{1}\!\left[ \sum_{k=0}^{2} \mathbf{1}[s_{10y2y,t-k} < 0] = 3 \right] \]</div>
-<p>The three-month persistence requirement filters noise from transient month-end dislocations. The pipeline also maintains a <em>months inverted</em> counter for the current episode.</p>
+<p>The pipeline also keeps a running count of how many consecutive months the curve has been inverted. A brief dip is different from a two-year inversion that ended in 2024 &mdash; which is the recent episode informing current recession probability readings.</p>
 
 <h2 class="st">4. Recession Probability Model</h2>
-<p>The Estrella-Mishkin (1996) probit model estimates the probability of a recession beginning within 12 months:</p>
+<p>Rather than drawing an arbitrary line at "inverted = recession incoming," this component turns the yield curve spread into an actual probability using a probit regression published by Arturo Estrella and Frederic Mishkin at the New York Fed in 1996. It's simple by modern standards but has held up well out-of-sample across multiple cycles.</p>
+<p>The formula takes the 10y&ndash;3m spread as its only input and outputs the probability of a recession starting within the next 12 months:</p>
 <div class="eq"><span class="eql">(4)</span>\[ P(\text{recession}_{t+12}) = \Phi\!\left( -0.6521 - 0.2375 \times s_{10y3m,t} \right) \]</div>
-<p>where \(\Phi(\cdot)\) is the standard normal CDF. Coefficients &minus;0.6521 and &minus;0.2375 are from Estrella &amp; Mishkin (1996, Table 1), estimated on 1960&ndash;1994 monthly U.S. data with NBER recession starts as the dependent variable.</p>
+<p>Here \(\Phi(\cdot)\) is the standard normal CDF. The two coefficients &mdash; &minus;0.6521 for the intercept and &minus;0.2375 for the spread &mdash; are the exact values from Estrella &amp; Mishkin (1996, Table 1), estimated on U.S. monthly data from 1960 through 1994. The negative slope is what you'd expect: a more inverted (more negative) spread pushes the probability up.</p>
+<p>The dashboard maps the raw probability to four labeled buckets for easy reading:</p>
 <table>
 <tr><th>Probability Range</th><th>Label</th></tr>
 <tr><td>\(P < 15\%\)</td><td>Low</td></tr>
@@ -102,59 +108,69 @@ ol.refs li{margin-bottom:10px;line-height:1.6}
 <p class="tc">Table 2. Recession probability thresholds.</p>
 
 <h2 class="st">5. Inflation Regime Classification</h2>
-<p>CPI YoY (FRED: <code>CPIAUCSL</code>) z-scored against a rolling 20-year window:</p>
+<p>Inflation isn't binary. Whether 3.5% CPI is "high" depends on what's normal for the time period. A 3.5% reading in 2024 carries very different implications than 3.5% in 1998, when it would have been mildly elevated, or 1981, when it would have looked like victory.</p>
+<p>To capture this context, the dashboard computes a z-score relative to a rolling 20-year (240-month) window of CPI year-over-year growth (FRED: <code>CPIAUCSL</code>):</p>
 <div class="eq"><span class="eql">(5)</span>\[ z_{\pi,t} = \frac{\pi_t - \bar{\pi}_{t,240}}{\sigma_{\pi,t,240}} \]</div>
+<p>That z-score then maps to one of four regime labels, using thresholds at &plusmn;0.5 and +1.5 standard deviations from the rolling mean:</p>
 <div class="eq"><span class="eql">(6)</span>\[\text{regime}_t = \begin{cases}\text{Deflationary} & z_{\pi,t} < -0.5 \\ \text{Normal} & -0.5 \leq z_{\pi,t} < +0.5 \\ \text{Elevated} & +0.5 \leq z_{\pi,t} < +1.5 \\ \text{High Inflation} & z_{\pi,t} \geq +1.5\end{cases}\]</div>
+<p>The +1.5 threshold for High Inflation corresponds roughly to the top quintile of historical inflation readings &mdash; the kind of environment where central banks typically feel forced to tighten hard and equity multiples compress.</p>
 
 <h2 class="st">6. Composite Risk Score</h2>
-<p>Three sub-components &mdash; ICE BofA HY OAS (<code>BAMLH0A0HYM2</code>), real 10-year yield (<code>DFII10</code>), and yield curve z-score &mdash; are standardized and averaged with equal weights, clipped to [&minus;1,&nbsp;+1]:</p>
+<p>The composite risk score tries to answer one question in a single number: <em>does the current macro environment favor taking risk or reducing it?</em> It combines three signals that each capture a different dimension of financial conditions.</p>
+<p><strong>Credit spreads</strong> (ICE BofA US HY OAS, FRED: <code>BAMLH0A0HYM2</code>) tell you how much extra yield investors demand to lend to risky companies. Wide spreads mean stress; tight spreads mean confidence. The component is sign-reversed so wider spreads pull the score down toward Risk-Off.</p>
+<p><strong>Real 10-year yield</strong> (FRED: <code>DFII10</code>) is what the 10-year Treasury pays after inflation. Deeply negative real rates are stimulative &mdash; Risk-On. Sharply positive real rates tighten financial conditions &mdash; Risk-Off.</p>
+<p><strong>Yield curve z-score</strong> is the 10y&ndash;2y spread standardized over a rolling 10-year window. A steeply positive curve is accommodative (Risk-On); an inverted curve is Risk-Off.</p>
+<p>The three components are averaged with equal weight and clipped to [&minus;1, +1]:</p>
 <div class="eq"><span class="eql">(7)</span>\[ \text{risk\_score}_t = \text{clip}\!\left( \frac{c_{\text{credit},t} + c_{\text{real},t} + c_{\text{curve},t}}{3},\; -1,\; +1 \right) \]</div>
-<p>Interpretation: above +0.3 = <em>Risk-On</em>; below &minus;0.3 = <em>Risk-Off</em>; between &plusmn;0.3 = <em>Neutral</em>.</p>
+<p>Scores above +0.3 are labeled <em>Risk-On</em>, below &minus;0.3 are <em>Risk-Off</em>, and between the two is <em>Neutral</em>. Equal weighting is a simplification &mdash; it's a reasonable starting point but the components aren't always independent, which is worth watching.</p>
 
 <h2 class="st">7. Global Growth Pulse</h2>
-<p>GDP-weighted average of IMF WEO real GDP growth forecasts for 12 major economies:</p>
+<p>A single number to summarize whether the world economy is expanding or contracting. It's a GDP-weighted average of IMF World Economic Outlook growth forecasts across the 12 major economies in the country scoreboard:</p>
 <div class="eq"><span class="eql">(8)</span>\[ \text{GGP}_t = \sum_{i=1}^{12} w_i \cdot g_{i,t} \]</div>
-<p>where \(w_i\) is PPP-adjusted GDP share. As of July 2026: GGP = +1.93%.</p>
+<p>where \(g_{i,t}\) is each economy's IMF WEO real GDP growth forecast and \(w_i\) is its PPP-adjusted share of the group's total GDP. As of July 2026: GGP = +1.93%, indicating positive but modest aggregate growth.</p>
 
 <h2 class="st">8. Country Scoreboard</h2>
-<p>12-economy panel (United States, China, Germany, Japan, UK, France, India, Brazil, Canada, Australia, South Korea, Italy), approximately 75% of global GDP.</p>
+<p>The scoreboard gives a macro snapshot of the 12 largest economies &mdash; the United States, China, Germany, Japan, United Kingdom, France, India, Brazil, Canada, Australia, South Korea, and Italy &mdash; which together represent roughly 75% of world GDP. Think of it as a one-page reference for cross-country structural conditions.</p>
 <table>
 <tr><th>Column</th><th>Description</th><th>Source</th></tr>
 <tr><td><code>gdp_forecast</code></td><td>IMF WEO real GDP growth forecast (%)</td><td>IMF WEO NGDP_RPCH</td></tr>
 <tr><td><code>gdp_actual</code></td><td>Most recent actual real GDP growth (%)</td><td>World Bank NY.GDP.MKTP.KD.ZG</td></tr>
 <tr><td><code>inflation</code></td><td>CPI YoY (%)</td><td>World Bank / OECD</td></tr>
 <tr><td><code>unemployment</code></td><td>Unemployment rate (%)</td><td>World Bank SL.UEM.TOTL.ZS</td></tr>
-<tr><td><code>current_account</code></td><td>Current account (% of GDP)</td><td>IMF WEO</td></tr>
-<tr><td><code>govt_debt</code></td><td>General government debt (% of GDP)</td><td>IMF WEO</td></tr>
+<tr><td><code>current_account</code></td><td>Current account balance (% of GDP)</td><td>IMF WEO</td></tr>
+<tr><td><code>govt_debt</code></td><td>General government gross debt (% of GDP)</td><td>IMF WEO</td></tr>
 <tr><td><code>policy_rate</code></td><td>Central bank policy rate (%)</td><td>OECD / central banks</td></tr>
 <tr><td><code>stock_ytd</code></td><td>Local equity index YTD return (%)</td><td>yfinance</td></tr>
 </table>
 <p class="tc">Table 3. Country scoreboard variables and sources.</p>
+<p>The GDP, debt, and current account columns often reflect data from a year or two ago &mdash; that's just the lag inherent in official statistics. Use these columns for structural comparisons rather than real-time trading signals. Stock YTD and policy rates are current.</p>
 
-<h2 class="st">9. Empirical Snapshots &mdash; July 2026</h2>
+<h2 class="st">9. Where Things Stand &mdash; July 2026</h2>
+<p>Here's the full picture as of mid-July 2026. The yield curve has re-steepened after the 2022&ndash;2024 inversion, recession probability has come down but hasn't cleared, inflation is still running a bit hot by historical standards, and financial conditions overall look supportive.</p>
 <div class="callout"><strong>Regime summary (data as of July 13, 2026):</strong> Yield curve not inverted (10y&ndash;2y: +0.38%, 10y&ndash;3m: +0.71%) &middot; Recession probability: 20.6% (Moderate) &middot; Inflation regime: Elevated (z-score +0.85) &middot; Risk score: +0.43 (Risk-On)</div>
 <table>
-<tr><th>Indicator</th><th>Value</th><th>Interpretation</th></tr>
-<tr><td>10y&ndash;2y spread</td><td>+0.38%</td><td>Positive &mdash; normal slope</td></tr>
-<tr><td>10y&ndash;3m spread</td><td>+0.71%</td><td>Positive &mdash; accommodative</td></tr>
-<tr><td>Inversion signal</td><td>0 (Not inverted)</td><td>No sustained inversion</td></tr>
-<tr><td>Recession probability (12m)</td><td>20.6%</td><td>Moderate &mdash; below 30% warning threshold</td></tr>
-<tr><td>CPI z-score</td><td>+0.85</td><td>Above 20-yr rolling mean; Elevated regime</td></tr>
-<tr><td>Global growth pulse</td><td>+1.93%</td><td>Positive GDP-weighted expansion</td></tr>
-<tr><td>Composite risk score</td><td>+0.43</td><td>Risk-On (above +0.30)</td></tr>
+<tr><th>Indicator</th><th>Value</th><th>What it means</th></tr>
+<tr><td>10y&ndash;2y spread</td><td>+0.38%</td><td>Positive &mdash; curve back to normal slope</td></tr>
+<tr><td>10y&ndash;3m spread</td><td>+0.71%</td><td>Positive &mdash; accommodative conditions</td></tr>
+<tr><td>Inversion signal</td><td>0 (Not inverted)</td><td>No sustained inversion active</td></tr>
+<tr><td>Recession probability (12m)</td><td>20.6%</td><td>Moderate &mdash; below the 30% warning threshold</td></tr>
+<tr><td>CPI z-score</td><td>+0.85</td><td>About 0.85 standard deviations above the 20-yr average</td></tr>
+<tr><td>Global growth pulse</td><td>+1.93%</td><td>Positive but modest global expansion</td></tr>
+<tr><td>Composite risk score</td><td>+0.43</td><td>Risk-On &mdash; financial conditions broadly supportive</td></tr>
 </table>
 <p class="tc">Table 4. Framework readings as of July 2026.</p>
-<p>Applying equation (4): \(P = \Phi(-0.6521 - 0.2375 \times 0.71) = \Phi(-0.8208) \approx 0.206\). This reflects post-inversion normalization following the 2022&ndash;2024 yield curve inversion.</p>
+<p>To verify the recession probability by hand: plug 0.71 into equation (4) and you get \(\Phi(-0.6521 - 0.2375 \times 0.71) = \Phi(-0.8208) \approx 20.6\%\). The 20.6% reading is lower than the peak we saw when the curve was deeply inverted in 2023, and historically a Moderate reading like this doesn't on its own call for a defensive posture. The Elevated inflation regime adds a layer of caution &mdash; it means the Fed has less flexibility to cut aggressively if growth disappoints.</p>
 
-<h2 class="st">10. Limitations</h2>
-<p><strong>Probit model out-of-sample caveats.</strong> Coefficients estimated on 1960&ndash;1994 data; structural shifts post-2008 (QE, zero lower bound) may reduce out-of-sample accuracy.</p>
-<p><strong>World Bank data lag.</strong> Cross-country GDP, inflation, and government debt carry 12&ndash;24 month lags. Treat the scoreboard as structural context, not a real-time signal.</p>
-<p><strong>Stationarity assumptions.</strong> The 20-year z-score assumes CPI YoY is stationary over the window. Structural breaks (e.g., 2021&ndash;2023 inflation shock) may temporarily distort regime labels.</p>
-<p><strong>Pipeline data quality.</strong> No automated anomaly detection layer. FRED series revisions and missing values propagate to outputs without flagging.</p>
-<p><strong>Equal weighting in risk score.</strong> Time-varying sub-component correlation may reduce diversification benefit. PCA or inverse-variance weighting is a planned enhancement.</p>
+<h2 class="st">10. Honest Caveats</h2>
+<p><strong>The probit model is old data.</strong> The Estrella-Mishkin coefficients were fit on 1960&ndash;1994 data. The post-2008 era &mdash; zero interest rates, massive Fed balance sheet expansion, forward guidance &mdash; changed the dynamics of how yield curve inversions translate into recessions. The model is still a useful benchmark, but treat the probability as an order-of-magnitude read rather than a precise forecast.</p>
+<p><strong>The country scoreboard lags reality.</strong> World Bank and IMF data for GDP, government debt, and current account balances are usually one to two years old by the time they're published. This is unavoidable with official statistics. The scoreboard reflects structural conditions, not last quarter.</p>
+<p><strong>The inflation z-score can get confused during regime shifts.</strong> The 20-year rolling window assumes inflation's statistical properties are reasonably stable. The 2021&ndash;2023 inflation spike was so large and fast that it temporarily pulled the rolling mean and standard deviation in ways that made the z-score less interpretable. This is a known issue with any rolling-window normalizer and worth keeping in mind around structural breaks.</p>
+<p><strong>No data quality checks yet.</strong> If FRED revises a series, or a monthly release comes in with a bad value, the pipeline will pass it through without flagging it. This is on the roadmap but not yet built.</p>
+<p><strong>The risk score assumes the three components are independent.</strong> Credit spreads, real rates, and the yield curve z-score are all correlated to some degree &mdash; especially in stress episodes when everything moves together. Equal weighting was the simplest defensible starting point. A more rigorous version would account for the correlation structure, either through PCA or inverse-variance weighting.</p>
 
 <h2 class="st">11. Conclusion</h2>
-<p>This paper has documented a systematic, automated framework for macroeconomic regime detection built entirely on public data and open-source Python tooling, deployed as a live MCP server enabling natural-language macro queries through AI assistants. Planned enhancements include rolling-window feature engineering, a machine learning comparison against the probit baseline, automated data-quality validation, and live equity market integration.</p>
+<p>This is a working tool, not a finished product. The pipeline runs reliably, the models are grounded in published research with documented coefficients, and the MCP server makes the data queryable from wherever AI assistants are available. What it currently lacks is ML sophistication, real-time data quality checks, and a rigorous out-of-sample backtest &mdash; all planned additions.</p>
+<p>The core idea holds: you can build a meaningful, systematic macro monitor from free public data in a few hundred lines of Python. The models aren't black boxes &mdash; every number in this paper is reproducible from the FRED series IDs and code in the repository.</p>
 
 <h2 class="st">Appendix A &mdash; FRED Series Reference</h2>
 <table>
@@ -163,14 +179,14 @@ ol.refs li{margin-bottom:10px;line-height:1.6}
 <tr><td><code>GS2</code></td><td>2-Year Treasury Constant Maturity Rate</td><td>10y&ndash;2y spread</td></tr>
 <tr><td><code>TB3MS</code></td><td>3-Month Treasury Bill: Secondary Market Rate</td><td>10y&ndash;3m spread, probit model</td></tr>
 <tr><td><code>CPIAUCSL</code></td><td>CPI for All Urban Consumers</td><td>Inflation regime classifier</td></tr>
-<tr><td><code>BAMLH0A0HYM2</code></td><td>ICE BofA US HY Option-Adjusted Spread</td><td>Risk score (credit)</td></tr>
-<tr><td><code>DFII10</code></td><td>10-Year TIPS Yield (Real Rate)</td><td>Risk score (real rate)</td></tr>
+<tr><td><code>BAMLH0A0HYM2</code></td><td>ICE BofA US HY Option-Adjusted Spread</td><td>Risk score (credit component)</td></tr>
+<tr><td><code>DFII10</code></td><td>10-Year TIPS Yield (Real Rate)</td><td>Risk score (real rate component)</td></tr>
 <tr><td><code>UNRATE</code></td><td>Civilian Unemployment Rate</td><td>Supplemental US indicator</td></tr>
 </table>
 <p class="tc">Table A1. FRED series used in the pipeline.</p>
 
 <h2 class="st">Appendix B &mdash; Implementation Notes</h2>
-<p>Four sequential Jupyter notebooks via GitHub Actions (every Monday 06:00 UTC), executed with <code>papermill</code>:</p>
+<p>The pipeline is four Jupyter notebooks executed in sequence every Monday at 06:00 UTC via GitHub Actions, using <code>papermill</code> to inject a run date and write output notebooks for debugging:</p>
 <table>
 <tr><th>Notebook</th><th>Output</th></tr>
 <tr><td><code>01_ingest.ipynb</code></td><td><code>data/raw/</code></td></tr>
@@ -179,7 +195,7 @@ ol.refs li{margin-bottom:10px;line-height:1.6}
 <tr><td><code>04_render.ipynb</code></td><td><code>docs/index.html</code></td></tr>
 </table>
 <p class="tc">Table B1. Pipeline notebook sequence and outputs.</p>
-<p>MCP server (<code>mcp_server.py</code>) deployed to AlmaLinux cPanel VPS at <code>129.121.100.134</code>, served via Traefik Docker reverse proxy at <code>https://macro-mcp.trevormonroe.com/mcp</code> with Let&rsquo;s Encrypt TLS.</p>
+<p>The MCP server (<code>mcp_server.py</code>) runs on an AlmaLinux cPanel VPS, served through a Traefik Docker reverse proxy at <code>https://macro-mcp.trevormonroe.com/mcp</code> with auto-renewed Let&rsquo;s Encrypt TLS. All five MCP tools (<code>get_macro_snapshot</code>, <code>get_yield_curve</code>, <code>get_recession_probability</code>, <code>get_country_scoreboard</code>, <code>check_pipeline_health</code>) read directly from the parquet and JSON files that the pipeline writes to <code>data/outputs/</code>.</p>
 
 <h2 class="st">Appendix C &mdash; Peer Review Reports</h2>
 <p>This paper underwent double-blind review by three independent referees. Reviewer identities were revealed upon acceptance.</p>
@@ -217,7 +233,7 @@ ol.refs li{margin-bottom:10px;line-height:1.6}
 </ol>
 </div>
 
-<p style="margin-top:20px">The author thanks the three reviewers. Reviewer feedback is incorporated into Section 10 and the Planned Enhancements. Full risk score re-estimation and the ML comparison are deferred to a follow-on working paper.</p>
+<p style="margin-top:20px">The author thanks the three reviewers. Reviewer feedback is incorporated into Section 10 and the Planned Enhancements in Section 11. Full risk score re-estimation and the ML comparison are deferred to a follow-on working paper.</p>
 
 <h2 class="st">References</h2>
 <ol class="refs">

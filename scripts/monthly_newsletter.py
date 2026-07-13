@@ -430,7 +430,10 @@ def send_email(subject: str, html: str):
         return
     resp = requests.post(
         BUTTONDOWN_API,
-        headers={"Authorization": f"Token {api_key}"},
+        headers={
+            "Authorization": f"Token {api_key}",
+            "X-Buttondown-Live-Dangerously": "true",
+        },
         json={"subject": subject, "body": html, "status": "about_to_send"},
         timeout=30,
     )

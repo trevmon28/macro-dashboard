@@ -208,7 +208,7 @@ def model_commentary_text(snap):
         f"though false positives occur — particularly when the inversion is brief."
         if pct > 20
         else "Readings below 20% have historically been associated with expansion phases, "
-        "though the model has a 12-month lag and should be read alongside other signals."
+        "though the model should be read alongside other signals."
     )
     inf_comment = (
         f"The current inflation regime ({regime}) is above the historical baseline. "

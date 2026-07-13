@@ -225,6 +225,9 @@ def inflation_text(snap):
 
 def risk_text(snap):
     rs = snap.get("risk_score", 0) or 0
+    inv = snap.get("inversion_signal", 0)
+    s2 = snap.get("yield_spread_10y2y", 0) or 0
+    inf_code = snap.get("inflation_regime", 0)
     if rs > 0.3:
         label, color = "Risk-On", "#16a34a"
         interp = (
@@ -243,11 +246,28 @@ def risk_text(snap):
         )
     else:
         label, color = "Neutral", "#d97706"
-        interp = (
-            "The three inputs are sending mixed signals — some look fine, others are mildly "
-            "cautionary. There's no strong case right now for either leaning aggressively into "
-            "risk or defensively pulling back."
-        )
+        curve_ok = not inv and s2 > 0
+        real_rate_concern = inf_code >= 1
+        if curve_ok and real_rate_concern:
+            interp = (
+                "The yield curve looks healthy — long-term rates are above short-term rates, "
+                "which is the normal relationship. But with inflation still running above average, "
+                "real interest rates (after subtracting inflation) are keeping borrowing conditions "
+                "tighter than the headline numbers suggest. Those two forces are roughly offsetting "
+                "each other, leaving no clear directional signal."
+            )
+        elif not curve_ok:
+            interp = (
+                "The yield curve is the main drag here — short-term rates are close to or above "
+                "long-term rates, which historically signals caution. Credit conditions aren't "
+                "alarming, which keeps the gauge from tipping fully into Risk-Off territory."
+            )
+        else:
+            interp = (
+                "Credit spreads are somewhat elevated — investors are demanding a bigger premium "
+                "to hold corporate debt over safe Treasuries — but the yield curve and real rates "
+                "aren't adding to that concern. The net result is a wash."
+            )
     return (
         f"Our <strong>Financial Conditions Gauge</strong> reads "
         f"<strong style='color:{color}'>{label}</strong> ({rs:+.2f} on a −1 to +1 scale). "

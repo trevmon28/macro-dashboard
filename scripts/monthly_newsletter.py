@@ -334,7 +334,7 @@ def render_html(snap, ind, sb, issue_number, issue_date):
     d_s2 = mom_delta(ind, "yield_spread_10y2y")
     d_risk = mom_delta(ind, "risk_score")
 
-    tagline = f"Yield curve {inv_label.lower()} · Recession risk {rec_pct}% · Inflation {regime} · {risk_label}"
+    tagline = f"Yield curve: {inv_label} · Recession risk: {rec_pct}% · Inflation: {regime} · Risk gauge: {risk_label}"
 
     # Country spotlight
     country = COUNTRIES[(issue_number - 1) % 12]

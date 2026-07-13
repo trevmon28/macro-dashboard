@@ -221,29 +221,33 @@ def risk_text(snap):
     if rs > 0.3:
         label, color = "Risk-On", "#16a34a"
         interp = (
-            "Junk bond spreads are tight (meaning investors aren't demanding a big premium "
-            "to hold risky debt), real interest rates are supportive, and the yield curve "
-            "isn't sending stress signals. Historically, conditions like these have been "
-            "favorable for stocks and other risk assets."
+            "All three inputs are pointing in a healthy direction: junk bond spreads are tight "
+            "(investors aren't demanding a big premium to hold risky corporate debt), real "
+            "interest rates are supportive, and the yield curve isn't sending stress signals. "
+            "Historically, conditions like these have been favorable for stocks and other risk assets."
         )
     elif rs < -0.3:
         label, color = "Risk-Off", "#dc2626"
         interp = (
-            "The model is picking up stress: corporate borrowing costs are elevated relative "
-            "to Treasuries, or real rates are negative, or the yield curve is deeply inverted. "
-            "These are the kinds of conditions where investors historically rotate toward "
-            "safer assets like government bonds and cash."
+            "One or more inputs are flashing caution: corporate borrowing costs are elevated "
+            "relative to Treasuries, real rates are restrictive, or the yield curve is deeply "
+            "inverted. Historically these conditions have pushed investors toward safer assets "
+            "like government bonds and cash."
         )
     else:
         label, color = "Neutral", "#d97706"
         interp = (
-            "The signals are mixed — some indicators look fine, others are flashing caution. "
-            "There's no strong case right now for either aggressively leaning into risk or "
-            "defensively pulling back. A balanced posture makes sense."
+            "The three inputs are sending mixed signals — some look fine, others are mildly "
+            "cautionary. There's no strong case right now for either leaning aggressively into "
+            "risk or defensively pulling back."
         )
     return (
-        f"Our composite risk gauge reads <strong style='color:{color}'>{label}</strong> "
-        f"({rs:+.2f} on a −1 to +1 scale). {interp}"
+        f"Our <strong>Financial Conditions Gauge</strong> reads "
+        f"<strong style='color:{color}'>{label}</strong> ({rs:+.2f} on a −1 to +1 scale). "
+        f"It combines three signals: <em>high-yield credit spreads</em> (do investors trust "
+        f"risky borrowers?), <em>real interest rates</em> (is money actually cheap after "
+        f"inflation?), and the <em>yield curve shape</em> (is the bond market worried about "
+        f"a slowdown?). {interp}"
     )
 
 
@@ -334,7 +338,7 @@ def render_html(snap, ind, sb, issue_number, issue_date):
     d_s2 = mom_delta(ind, "yield_spread_10y2y")
     d_risk = mom_delta(ind, "risk_score")
 
-    tagline = f"Yield curve: {inv_label} · Recession risk: {rec_pct}% · Inflation: {regime} · Risk gauge: {risk_label}"
+    tagline = f"Yield curve: {inv_label} · Recession risk: {rec_pct}% · Inflation: {regime} · Financial conditions: {risk_label}"
 
     # Country spotlight
     country = COUNTRIES[(issue_number - 1) % 12]
@@ -385,7 +389,7 @@ def render_html(snap, ind, sb, issue_number, issue_date):
         <div class="delta">Z-score: {snap.get("inflation_zscore", 0):+.2f}</div>
       </div>
       <div class="card">
-        <div class="lbl">Risk Score</div>
+        <div class="lbl">Financial Conditions</div>
         <div class="val" style="color:{risk_color}">{rs:+.2f}</div>
         <div class="delta"><strong style="color:{risk_color}">{risk_label}</strong> &nbsp;·&nbsp; MoM: {delta_str(d_risk)}</div>
       </div>

@@ -429,9 +429,7 @@ def render_html(snap, ind, sb, issue_number, issue_date):
     <h2>What Moved This Month</h2>
     <p>{inflation_text(snap)}</p>
     <p>{risk_text(snap)}</p>
-    <p>Equity market standouts:</p>
-    <ul>
-{mover_items}    </ul>
+{"<p>Equity market standouts:</p><ul>" + mover_items + "    </ul>" if mover_items.strip() else ""}
   </div>
 
   <div class="sec">

@@ -221,7 +221,7 @@ def inflation_text(snap):
             "makes stocks look less attractive relative to bonds."
         )
 
-    return f"Inflation is in the <strong>{regime}</strong> regime. {what_it_means}"
+    return f"Inflation is currently <strong>{regime}</strong>. {what_it_means}"
 
 
 def risk_text(snap):

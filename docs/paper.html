@@ -71,14 +71,16 @@ ol.refs li{margin-bottom:10px;line-height:1.6}
 <h2 class="st">2. Data Sources</h2>
 <p>Everything here comes from public APIs. No paywalls, no vendor contracts. The four sources below cover U.S. macro indicators at high frequency and cross-country fundamentals at lower frequency.</p>
 <table>
-<tr><th>Source</th><th>Indicators</th><th>Access</th><th>Frequency</th></tr>
-<tr><td>FRED (St. Louis Fed)</td><td>Treasury yields, CPI, HY credit spread, real rates</td><td><code>fredapi</code></td><td>Daily / Monthly</td></tr>
-<tr><td>World Bank Open Data</td><td>GDP growth, current account, government debt</td><td><code>wbdata</code></td><td>Annual (1&ndash;2 yr lag)</td></tr>
-<tr><td>IMF WEO Database</td><td>GDP growth forecasts (NGDP_RPCH)</td><td><code>imf-reader</code></td><td>Semi-annual</td></tr>
-<tr><td>OECD / Central Banks</td><td>Policy interest rates</td><td><code>wbdata</code></td><td>Varies</td></tr>
+<tr><th>Source</th><th>Indicators</th><th>Access</th><th>Frequency / Lag</th></tr>
+<tr><td>FRED (St. Louis Fed)</td><td>Treasury yields, CPI, HY credit spread, real rates</td><td><code>fredapi</code></td><td>Daily / Monthly (~1 wk lag)</td></tr>
+<tr><td>OECD SDMX REST API</td><td>GDP growth, CPI inflation, unemployment &mdash; 9 OECD members</td><td><code>requests</code></td><td>Quarterly / Monthly (~1 qtr lag)</td></tr>
+<tr><td>IMF WEO Database</td><td>GDP growth forecasts, current account, govt debt, unemployment</td><td><code>imf-reader</code></td><td>Semi-annual (all countries)</td></tr>
+<tr><td>World Bank Open Data</td><td>GDP growth, current account, government debt (non-OECD fallback)</td><td><code>wbdata</code></td><td>Annual (1&ndash;2 yr lag)</td></tr>
+<tr><td>Central Bank APIs / FRED</td><td>Policy interest rates (G10 + major EM)</td><td><code>fredapi</code></td><td>Monthly</td></tr>
+<tr><td>yfinance</td><td>Equity index YTD returns (12 major markets)</td><td><code>yfinance</code></td><td>Daily</td></tr>
 </table>
-<p class="tc">Table 1. Data sources and access methods.</p>
-<p>One thing to flag upfront: the cross-country data from the World Bank and IMF can lag reality by one to two years. That matters for how to read the country scoreboard &mdash; it tells you about structural conditions, not last quarter.</p>
+<p class="tc">Table 1. Data sources and access methods. OECD data is used as the primary source for the nine full OECD member countries in the scoreboard; IMF WEO and World Bank serve as fallbacks for China, India, and Brazil.</p>
+<p>For U.S. yield curve and inflation dynamics, FRED provides near-real-time daily and monthly data &mdash; the backbone of the recession probability and regime classification models. Cross-country indicators have more variable freshness. The nine OECD member countries (USA, Germany, Japan, UK, France, Italy, Canada, Australia, South Korea) now draw quarterly GDP and monthly CPI and unemployment directly from the OECD SDMX REST API, with a typical lag of one quarter. The three non-OECD economies in the scoreboard &mdash; China, India, and Brazil &mdash; fall back to IMF WEO semi-annual forecasts, which carry a longer publication delay.</p>
 
 <h2 class="st">3. Yield Curve Dynamics</h2>
 <h3 class="ss">3.1 What the Yield Curve Is and Why It Matters</h3>
@@ -132,15 +134,14 @@ ol.refs li{margin-bottom:10px;line-height:1.6}
 <h2 class="st">8. Country Scoreboard</h2>
 <p>The scoreboard gives a macro snapshot of the 12 largest economies &mdash; the United States, China, Germany, Japan, United Kingdom, France, India, Brazil, Canada, Australia, South Korea, and Italy &mdash; which together represent roughly 75% of world GDP. Think of it as a one-page reference for cross-country structural conditions.</p>
 <table>
-<tr><th>Column</th><th>Description</th><th>Source</th></tr>
-<tr><td><code>gdp_forecast</code></td><td>IMF WEO real GDP growth forecast (%)</td><td>IMF WEO NGDP_RPCH</td></tr>
-<tr><td><code>gdp_actual</code></td><td>Most recent actual real GDP growth (%)</td><td>World Bank NY.GDP.MKTP.KD.ZG</td></tr>
-<tr><td><code>inflation</code></td><td>CPI YoY (%)</td><td>World Bank / OECD</td></tr>
-<tr><td><code>unemployment</code></td><td>Unemployment rate (%)</td><td>World Bank SL.UEM.TOTL.ZS</td></tr>
-<tr><td><code>current_account</code></td><td>Current account balance (% of GDP)</td><td>IMF WEO</td></tr>
-<tr><td><code>govt_debt</code></td><td>General government gross debt (% of GDP)</td><td>IMF WEO</td></tr>
-<tr><td><code>policy_rate</code></td><td>Central bank policy rate (%)</td><td>OECD / central banks</td></tr>
-<tr><td><code>stock_ytd</code></td><td>Local equity index YTD return (%)</td><td>yfinance</td></tr>
+<tr><th>Column</th><th>Description</th><th>Primary Source</th><th>Freshness</th></tr>
+<tr><td><code>gdp_actual</code></td><td>Most recent real GDP growth, YoY (%)</td><td>OECD QNA (OECD members) / IMF WEO (others)</td><td>Quarterly / Annual</td></tr>
+<tr><td><code>inflation</code></td><td>CPI YoY (%)</td><td>OECD CPI (OECD members) / IMF WEO (others)</td><td>Monthly / Annual</td></tr>
+<tr><td><code>unemployment</code></td><td>Unemployment rate (% of labour force)</td><td>OECD LFS (OECD members) / IMF WEO (others)</td><td>Monthly / Annual</td></tr>
+<tr><td><code>current_account</code></td><td>Current account balance (% of GDP)</td><td>IMF WEO BCA_NGDPD</td><td>Semi-annual</td></tr>
+<tr><td><code>govt_debt</code></td><td>General government gross debt (% of GDP)</td><td>IMF WEO GGXWDG_NGDP</td><td>Semi-annual</td></tr>
+<tr><td><code>policy_rate</code></td><td>Central bank policy rate (%)</td><td>FRED (G10) / central bank feeds</td><td>Monthly</td></tr>
+<tr><td><code>stock_ytd</code></td><td>Local equity index YTD return (%)</td><td>yfinance</td><td>Daily</td></tr>
 </table>
 <p class="tc">Table 3. Country scoreboard variables and sources.</p>
 <p>The GDP, debt, and current account columns often reflect data from a year or two ago &mdash; that's just the lag inherent in official statistics. Use these columns for structural comparisons rather than real-time trading signals. Stock YTD and policy rates are current.</p>
@@ -163,7 +164,7 @@ ol.refs li{margin-bottom:10px;line-height:1.6}
 
 <h2 class="st">10. Honest Caveats</h2>
 <p><strong>The probit model is old data.</strong> The Estrella-Mishkin coefficients were fit on 1960&ndash;1994 data. The post-2008 era &mdash; zero interest rates, massive Fed balance sheet expansion, forward guidance &mdash; changed the dynamics of how yield curve inversions translate into recessions. The model is still a useful benchmark, but treat the probability as an order-of-magnitude read rather than a precise forecast.</p>
-<p><strong>The country scoreboard lags reality.</strong> World Bank and IMF data for GDP, government debt, and current account balances are usually one to two years old by the time they're published. This is unavoidable with official statistics. The scoreboard reflects structural conditions, not last quarter.</p>
+<p><strong>The country scoreboard has mixed freshness.</strong> For the nine full OECD member countries &mdash; USA, Germany, Japan, UK, France, Italy, Canada, Australia, and South Korea &mdash; GDP, inflation, and unemployment data now come from the OECD SDMX REST API with a typical lag of one quarter for GDP and six to eight weeks for CPI and unemployment. For China, India, and Brazil, the pipeline falls back to IMF WEO semi-annual releases, which carry the longer publication delay inherent to official statistics in those economies. Current account balances and government debt remain on IMF WEO for all countries and reflect structural conditions, not the most recent quarter.</p>
 <p><strong>The inflation z-score can get confused during regime shifts.</strong> The 20-year rolling window assumes inflation's statistical properties are reasonably stable. The 2021&ndash;2023 inflation spike was so large and fast that it temporarily pulled the rolling mean and standard deviation in ways that made the z-score less interpretable. This is a known issue with any rolling-window normalizer and worth keeping in mind around structural breaks.</p>
 <p><strong>No data quality checks yet.</strong> If FRED revises a series, or a monthly release comes in with a bad value, the pipeline will pass it through without flagging it. This is on the roadmap but not yet built.</p>
 <p><strong>The risk score assumes the three components are independent.</strong> Credit spreads, real rates, and the yield curve z-score are all correlated to some degree &mdash; especially in stress episodes when everything moves together. Equal weighting was the simplest defensible starting point. A more rigorous version would account for the correlation structure, either through PCA or inverse-variance weighting.</p>

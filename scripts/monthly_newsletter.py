@@ -335,7 +335,7 @@ def spotlight_text(country, row):
     if debt:
         parts.append(f"government debt stands at <strong>{debt}</strong>")
 
-    text = f"{country}: " + ", ".join(parts) + "." if parts else f"Data for {country} is limited this month."
+    text = f"{country}: " + ", ".join(parts) + "." if parts else ""
     ytd = row.get("stock_ytd")
     if ytd is not None and ytd == ytd:
         direction = "gained" if ytd >= 0 else "lost"
@@ -437,12 +437,7 @@ def render_html(snap, ind, sb, issue_number, issue_date):
     {model_commentary_text(snap)}
   </div>
 
-  <div class="sec">
-    <h2>Country Spotlight — {country}</h2>
-    <div class="spotlight">
-      <p style="margin:0;font-size:15px;line-height:1.7">{s_text}</p>
-    </div>
-  </div>
+{"<div class='sec'><h2>Country Spotlight — " + country + "</h2><div class='spotlight'><p style='margin:0;font-size:15px;line-height:1.7'>" + s_text + "</p></div></div>" if s_text else ""}
 
   <div class="sec">
     <h2>Resources</h2>

@@ -131,7 +131,7 @@ snapshot = {
 print(f"  latest_snapshot.json saved")
 print(json.dumps(snapshot, indent=2))
 
-# Country scoreboard stub (empty — no pipeline run yet)
+# Country scoreboard — US populated from FRED; others stub until full pipeline runs
 COUNTRIES = [
     "United States", "China", "Germany", "Japan", "United Kingdom",
     "France", "India", "Brazil", "Canada", "Australia", "South Korea", "Italy",
@@ -147,6 +147,18 @@ sb = pd.DataFrame({
     "stock_ytd":       [None] * 12,
     "data_source":     ["—"] * 12,
 }, index=pd.Index(COUNTRIES, name="country"))
+
+# Populate US row from FRED data already fetched
+us_ff   = fred.get_series("FEDFUNDS").dropna()
+us_unemp = fred.get_series("UNRATE").dropna()
+us_gdp  = fred.get_series("A191RL1Q225SBEA").dropna()
+
+sb.loc["United States", "policy_rate"]  = round(float(us_ff.iloc[-1]), 2)
+sb.loc["United States", "unemployment"] = round(float(us_unemp.iloc[-1]), 1)
+sb.loc["United States", "inflation"]    = round(float(ind["cpi_yoy_pct"].dropna().iloc[-1]), 1)
+sb.loc["United States", "gdp_actual"]   = round(float(us_gdp.iloc[-1]), 1)
+sb.loc["United States", "data_source"]  = "FRED"
+print(f"  US row populated from FRED")
 
 sb.to_parquet(OUTPUTS / "country_scoreboard.parquet")
 print(f"  country_scoreboard.parquet saved (stub — run full pipeline for real data)")

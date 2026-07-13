@@ -2,8 +2,8 @@
 
 **Feature:** `002-mcp-server-vps`
 **Author:** Trevor Monroe
-**Date:** June 2026
-**Status:** Planned
+**Date:** July 2026
+**Status:** Deployed (July 11, 2026)
 
 ---
 
@@ -11,7 +11,7 @@
 
 Expose the Global Macro Dashboard data as an MCP server running on the existing VPS, reachable at `https://macro-mcp.trevormonroe.com/mcp`. This allows Claude AI and other MCP-compatible clients to query live macro indicators, yield curve data, recession probability, and country scoreboard data interactively.
 
-The deployment pattern mirrors the MLB Prediction MCP server (`mlb-mcp.trevormonroe.com`) — same VPS, same systemd + Nginx + certbot stack, different port and subdomain. See `C:\Users\trevm\Projects\MLBPrediction\specs\002-mcp-server-vps\` for the reference implementation.
+**NOTE: The original spec assumed Nginx + certbot, but this server uses Traefik (Docker) as the reverse proxy. Do NOT attempt to use Nginx — it cannot start because Traefik owns ports 80 and 443. See the Traefik section below.**
 
 ---
 
@@ -20,23 +20,24 @@ The deployment pattern mirrors the MLB Prediction MCP server (`mlb-mcp.trevormon
 | Field | Value |
 |-------|-------|
 | IP address | `129.121.100.134` |
-| OS | Ubuntu 22.04 LTS (cPanel VPS) |
+| OS | AlmaLinux (cPanel VPS — NOT Ubuntu) |
+| SSH | `ssh -i C:\Users\trevm\.ssh\id_mlb_vps root@129.121.100.134` |
 | Deploy path | `/opt/macro/` |
-| Service user | `www-data` |
-| Internal port | `9002` (avoids conflict with MLB server on `9001`) |
-| External port | `443` (Nginx TLS termination) |
-| Domain | `macro-mcp.trevormonroe.com` |
-| MCP endpoint | `https://macro-mcp.trevormonroe.com/mcp` |
-| Health endpoint | `https://macro-mcp.trevormonroe.com/health` |
-| Nginx config | `/etc/nginx/sites-available/macro-mcp` |
-| Systemd service | `/etc/systemd/system/macro-mcp.service` |
+| Service user | `root` (`www-data` does not exist on this server) |
+| Python | `python3.11` (system `python3` is 3.9 — too old for imf-reader/wbdata) |
 | Virtualenv | `/opt/macro/venv/` |
-| Data dir | `/opt/macro/data/outputs/` (snapshot JSON, indicator parquets) |
+| Internal port | `9002` |
+| External URL | `https://macro-mcp.trevormonroe.com/mcp` |
+| Health endpoint | `https://macro-mcp.trevormonroe.com/health` |
+| Systemd service | `/etc/systemd/system/macro-mcp.service` |
+| Traefik route config | `/opt/hostedapps/dynamic/macro-mcp.toml` |
+| Data dir | `/opt/macro/data/outputs/` |
 
-**DNS record required:**
+**DNS record:**
 ```
 macro-mcp.trevormonroe.com.  A  129.121.100.134
 ```
+Add via cPanel → Zone Editor → Manage trevormonroe.com → Add A Record.
 
 ---
 
@@ -86,12 +87,42 @@ Systemd service must have `Restart=always` with `RestartSec=5`.
 | Layer | Technology |
 |-------|-----------|
 | MCP framework | `mcp` Python package (FastMCP), streamable-HTTP transport |
-| ASGI server | `uvicorn` (embedded in FastMCP) |
-| Reverse proxy | Nginx (TLS termination, SSE headers, subdomain routing) |
-| TLS | Let's Encrypt via certbot (auto-renewal) |
+| ASGI server | `uvicorn` |
+| Reverse proxy | **Traefik** (Docker container, NOT Nginx) |
+| TLS | Let's Encrypt via Traefik `challenger` cert resolver |
 | Process manager | systemd (`macro-mcp.service`) |
 | Data store | Local filesystem — parquet + JSON written by weekly GitHub Actions pipeline |
-| Language | Python 3.11+ |
+| Language | Python 3.11 |
+
+---
+
+## Reverse Proxy: Traefik
+
+This server uses Traefik running in Docker as the reverse proxy. **Do not attempt to install or start Nginx** — it will fail because Traefik owns ports 80 and 443.
+
+- Traefik static config: `/opt/hostedapps/traefik.toml`
+- Dynamic config directory: `/opt/hostedapps/dynamic/` (maps to `/etc/traefik/dynamic` inside container)
+- `watch = true` is set — Traefik hot-reloads new `.toml` files automatically, no restart needed
+- SSL cert resolver name: `challenger` (Let's Encrypt HTTP-01)
+- Docker host gateway IP (for routing from container to host): `172.18.0.1`
+
+Other services in `/opt/hostedapps/dynamic/`: `mlb.toml`, `baseball.toml`, `college-ranker.toml`, `flood.toml`
+
+**`/opt/hostedapps/dynamic/macro-mcp.toml`:**
+```toml
+[http.routers]
+  [http.routers.macro-mcp]
+    rule = "Host(`macro-mcp.trevormonroe.com`)"
+    service = "macro-mcp"
+    entryPoints = ["websecure"]
+    [http.routers.macro-mcp.tls]
+      certResolver = "challenger"
+
+[http.services]
+  [http.services.macro-mcp.loadBalancer]
+    [[http.services.macro-mcp.loadBalancer.servers]]
+      url = "http://172.18.0.1:9002"
+```
 
 ---
 
@@ -108,114 +139,96 @@ Alternatively, `data/outputs/` can be synced directly via `rsync` or `scp` after
 
 ---
 
-## Deployment Procedure
+## Deployment Procedure (Verified July 11, 2026)
 
-### Step 1 — System packages (if not already installed for MLB server)
+### Step 1 — SSH in
 ```bash
-apt update && apt install -y python3-pip python3-venv git nginx certbot python3-certbot-nginx
+ssh -i C:\Users\trevm\.ssh\id_mlb_vps root@129.121.100.134
 ```
 
-### Step 2 — Clone repo and install dependencies
+### Step 2 — Clone repo
 ```bash
-cd /opt
-git clone https://github.com/trevmon28/macro-dashboard.git macro
-cd macro
-python3 -m venv venv
+mkdir -p /opt/macro && cd /opt/macro
+git clone https://github.com/trevmon28/macro-dashboard.git .
+```
+
+### Step 3 — Create venv with Python 3.11
+```bash
+# System python3 is 3.9 — too old. Must use python3.11.
+python3.11 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip && pip install -r requirements.txt
+pip install "mcp[cli]" uvicorn   # mcp and uvicorn not yet in requirements.txt
 ```
 
-### Step 3 — Create data directories and fix permissions
+### Step 4 — Create data directory
 ```bash
-mkdir -p data/outputs data/raw data/processed
-chown -R www-data:www-data /opt/macro
+mkdir -p data/outputs
+# Note: chown www-data fails — www-data does not exist. Run as root, skip chown.
 ```
 
-### Step 4 — Add FRED API key to environment
+### Step 5 — Create systemd service
 ```bash
-echo "FRED_API_KEY=your_key_here" > /opt/macro/.env
-chown www-data:www-data /opt/macro/.env
-chmod 600 /opt/macro/.env
+cat > /etc/systemd/system/macro-mcp.service << 'EOF'
+[Unit]
+Description=Global Macro Dashboard MCP Server
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/opt/macro
+Environment=MCP_TRANSPORT=http
+Environment=MCP_PORT=9002
+ExecStart=/opt/macro/venv/bin/python mcp_server.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload && systemctl enable macro-mcp && systemctl start macro-mcp
+curl http://localhost:9002/health   # Expected: {"status":"ok","service":"macro-dashboard"}
 ```
 
-### Step 5 — Run initial pipeline to populate data/outputs/
+### Step 6 — Create Traefik dynamic config
 ```bash
-sudo -u www-data bash -c "
-  source /opt/macro/venv/bin/activate
-  cd /opt/macro
-  TODAY=$(date -u +%Y-%m-%d)
-  papermill notebooks/01_ingest.ipynb /tmp/01_out.ipynb -p run_date \$TODAY
-  papermill notebooks/02_transform.ipynb /tmp/02_out.ipynb -p run_date \$TODAY
-  papermill notebooks/03_model.ipynb /tmp/03_out.ipynb -p run_date \$TODAY
-"
+cat > /opt/hostedapps/dynamic/macro-mcp.toml << 'EOF'
+[http.routers]
+  [http.routers.macro-mcp]
+    rule = "Host(`macro-mcp.trevormonroe.com`)"
+    service = "macro-mcp"
+    entryPoints = ["websecure"]
+    [http.routers.macro-mcp.tls]
+      certResolver = "challenger"
+
+[http.services]
+  [http.services.macro-mcp.loadBalancer]
+    [[http.services.macro-mcp.loadBalancer.servers]]
+      url = "http://172.18.0.1:9002"
+EOF
+# Traefik auto-reloads — no restart needed
 ```
 
-### Step 6 — Install and start systemd service
-```bash
-cp deploy/macro-mcp.service /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable macro-mcp
-systemctl start macro-mcp
-# Verify:
-systemctl status macro-mcp --no-pager
-curl http://localhost:9002/health   # should return {"status":"ok"}
-```
+### Step 7 — Add DNS A record
+In cPanel → Zone Editor → Manage trevormonroe.com → Add Record:
+- Name: `macro-mcp.trevormonroe.com`
+- Type: `A`
+- Record: `129.121.100.134`
 
-### Step 7 — Install Nginx config
-```bash
-cp deploy/nginx-macro-mcp.conf /etc/nginx/sites-available/macro-mcp
-ln -sf /etc/nginx/sites-available/macro-mcp /etc/nginx/sites-enabled/macro-mcp
-nginx -t && systemctl reload nginx
-```
-
-### Step 8 — Add DNS A record
-```
-macro-mcp.trevormonroe.com  A  129.121.100.134
-```
-Wait for propagation: `dig macro-mcp.trevormonroe.com` must return `129.121.100.134`.
-
-### Step 9 — Issue SSL certificate
-```bash
-certbot --nginx -d macro-mcp.trevormonroe.com
-```
-
-### Step 10 — Verify end-to-end
+### Step 8 — Verify end-to-end (after DNS propagation)
 ```bash
 curl https://macro-mcp.trevormonroe.com/health
 # Expected: {"status":"ok","service":"macro-dashboard"}
 ```
 
-### Step 11 — Install weekly sync cron
+### Step 9 — Weekly data sync cron
 ```bash
-# Pull fresh data/outputs/ from repo every Monday at 07:00 UTC (after Actions run at 06:00)
-(crontab -u www-data -l 2>/dev/null; echo "0 7 * * 1 cd /opt/macro && git pull >> data/sync.log 2>&1") | crontab -u www-data -
-```
-
----
-
-## Nginx Config
-
-```nginx
-server {
-    listen 80;
-    server_name macro-mcp.trevormonroe.com;
-
-    location / {
-        proxy_pass         http://127.0.0.1:9002;
-        proxy_set_header   Host $host;
-        proxy_set_header   X-Real-IP $remote_addr;
-        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto $scheme;
-
-        # Required for MCP streamable-HTTP / SSE
-        proxy_buffering    off;
-        proxy_cache        off;
-        proxy_read_timeout 300s;
-        chunked_transfer_encoding on;
-        add_header         X-Accel-Buffering no;
-    }
-}
-# certbot appends HTTPS block automatically
+# Pull fresh data/outputs/ from repo every Monday at 07:00 UTC
+(crontab -l 2>/dev/null; echo "0 7 * * 1 cd /opt/macro && git pull >> /opt/macro/data/sync.log 2>&1") | crontab -
 ```
 
 ---
@@ -228,39 +241,36 @@ Description=Global Macro Dashboard MCP Server
 After=network.target
 
 [Service]
-User=www-data
-Group=www-data
+User=root
+Group=root
 WorkingDirectory=/opt/macro
-EnvironmentFile=/opt/macro/.env
 Environment=MCP_TRANSPORT=http
 Environment=MCP_PORT=9002
 ExecStart=/opt/macro/venv/bin/python mcp_server.py
 Restart=always
 RestartSec=5
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-**Critical:** `MCP_PORT=9002` must match the Nginx `proxy_pass` target. Do not use port 9001 (reserved for MLB MCP server on this VPS).
+**Critical:** `User=root` (not `www-data`). `MCP_PORT=9002` must not conflict with MLB server on `9003`.
 
 ---
 
-## Known Issues / Setup Friction
+## Known Issues (Discovered During Deploy — July 11, 2026)
 
-These mirror the MLB server issues — read before attempting deploy:
-
-### Port conflict with MLB server
-MLB server runs on `9001`. This server uses `9002`. Running manually without setting `MCP_PORT=9002` will fall back to the code default and may conflict. Always run manually as:
-```bash
-MCP_TRANSPORT=http MCP_PORT=9002 python mcp_server.py
-```
-
-### DNS must propagate before certbot
-Same as MLB server — wait for `dig macro-mcp.trevormonroe.com` to return the correct IP before running certbot.
-
-### Data freshness — pipeline runs on GitHub Actions, not VPS
-Unlike the MLB server (which runs its pipeline on the VPS via cron), the macro pipeline runs in GitHub Actions and commits outputs to the repo. The VPS `git pull` cron (Step 11) pulls fresh outputs weekly. If Actions is disabled or the pipeline fails, `data/outputs/` on the VPS will go stale. `check_pipeline_health` detects this.
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `chown www-data` fails | `www-data` user doesn't exist on AlmaLinux/cPanel | Use `User=root` in systemd service, skip chown |
+| `imf-reader`/`wbdata` not found by pip | System `python3` is 3.9, packages require ≥3.10 | Use `python3.11 -m venv venv` |
+| `mcp` and `uvicorn` not installed | Not in `requirements.txt` | `pip install "mcp[cli]" uvicorn` after main install |
+| Nginx fails to start | Traefik owns ports 80/443 | Don't use Nginx — create `/opt/hostedapps/dynamic/macro-mcp.toml` |
+| `/health` returns 404 | Old squatter process on port 9002 | `fuser -k 9002/tcp && systemctl restart macro-mcp` |
+| Port already in use on service restart | Previous process didn't release port | `fuser -k 9002/tcp` to clear, then restart |
+| `deploy/macro-mcp.service` not found | `deploy/` dir not committed to git | Create service file directly with `cat > /etc/systemd/...` |
 
 ---
 
@@ -302,13 +312,13 @@ git pull && systemctl restart macro-mcp
 
 ## Relationship to MLB MCP Server
 
-Both servers share the same VPS (`129.121.100.134`) and the same deployment pattern. Key differences:
+Both servers share the same VPS (`129.121.100.134`) and Traefik reverse proxy. Key differences:
 
 | | MLB Server | Macro Server |
 |---|---|---|
 | Subdomain | `mlb-mcp.trevormonroe.com` | `macro-mcp.trevormonroe.com` |
-| Port | `9001` | `9002` |
+| Internal port | `9003` | `9002` |
 | Deploy path | `/opt/mlb/` | `/opt/macro/` |
-| Data pipeline | VPS cron (daily) | GitHub Actions (weekly) + VPS git pull |
+| Traefik config | `/opt/hostedapps/dynamic/mlb.toml` | `/opt/hostedapps/dynamic/macro-mcp.toml` |
 | Systemd service | `mlb-mcp.service` | `macro-mcp.service` |
-| Nginx config | `mlb-mcp` in sites-available | `macro-mcp` in sites-available |
+| Data pipeline | VPS cron (daily) | GitHub Actions (weekly) + VPS git pull |

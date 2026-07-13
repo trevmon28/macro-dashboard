@@ -12,3 +12,5 @@ fredapi
 scipy
 scikit-learn
 numpy
+mcp[cli]
+uvicorn

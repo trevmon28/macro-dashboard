@@ -142,12 +142,20 @@ def yield_curve_text(snap, ind):
 
     move = ""
     if d2 is not None:
-        direction = "widened" if d2 > 0 else "narrowed"
-        move = (
-            f" The gap between long- and short-term rates <strong>{direction} by "
-            f"{abs(int(d2 * 100))} basis points</strong> this month "
-            f"(one basis point = 0.01%)."
-        )
+        if d2 > 0:
+            move = (
+                f" The gap between long- and short-term rates <strong>widened by "
+                f"{abs(int(d2 * 100))} basis points</strong> this month "
+                f"(one basis point = 0.01%) — a positive sign, meaning the curve is moving "
+                f"further from inversion territory."
+            )
+        else:
+            move = (
+                f" The gap between long- and short-term rates <strong>narrowed by "
+                f"{abs(int(d2 * 100))} basis points</strong> this month "
+                f"(one basis point = 0.01%) — a cautionary sign, meaning the curve is "
+                f"moving closer to inversion territory."
+            )
 
     return status_line + move
 

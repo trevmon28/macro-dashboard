@@ -14,3 +14,4 @@ scikit-learn
 numpy
 mcp[cli]
 uvicorn
+python-dotenv

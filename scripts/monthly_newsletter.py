@@ -20,6 +20,13 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+# Load .env from repo root if present (local dev only; GitHub Actions uses repo secrets)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+except ImportError:
+    pass
+
 # ---------------------------------------------------------------------------
 # Paths / constants
 # ---------------------------------------------------------------------------

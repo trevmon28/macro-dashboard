@@ -386,6 +386,9 @@ def update_index(issue_file: Path, issue_number: int, month_str: str, tagline: s
     )
     if index_path.exists():
         content = index_path.read_text(encoding="utf-8")
+        # Skip if this issue is already listed
+        if issue_file.name in content:
+            return
         content = content.replace("<!-- ISSUES -->", f"<!-- ISSUES -->\n{new_li}")
         index_path.write_text(content, encoding="utf-8")
     else:

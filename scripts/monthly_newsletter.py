@@ -121,108 +121,168 @@ def delta_str(v, pct=False):
 
 def yield_curve_text(snap, ind):
     s2 = snap.get("yield_spread_10y2y", 0)
-    s3 = snap.get("yield_spread_10y3m", 0)
     inv = snap.get("inversion_signal", 0)
     mo = snap.get("months_inverted", 0)
     d2 = mom_delta(ind, "yield_spread_10y2y")
-    d3 = mom_delta(ind, "yield_spread_10y3m")
-    status = f"inverted for {mo} consecutive months" if inv else "not inverted"
-    text = (
-        f"The 10y–2y Treasury spread stands at <strong>{s2:+.2f}%</strong> "
-        f"and the 10y–3m spread at <strong>{s3:+.2f}%</strong> — "
-        f"the yield curve is currently <strong>{status}</strong>."
-    )
-    if d2 is not None:
-        text += f" The 10y–2y spread moved <strong>{int(d2 * 100):+d} bps</strong> month-over-month"
-    if d3 is not None:
-        text += f", while the 10y–3m spread shifted <strong>{int(d3 * 100):+d} bps</strong>."
+
+    if inv:
+        status_line = (
+            f"Right now the yield curve is <strong>inverted</strong> — it's been that way for "
+            f"<strong>{mo} months</strong> in a row. That means short-term borrowing costs are "
+            f"higher than long-term ones, which is unusual and has historically been one of the "
+            f"most reliable early warnings of a recession."
+        )
     else:
-        text += "."
-    return text
+        status_line = (
+            f"Right now the yield curve is <strong>not inverted</strong> — 10-year Treasury yields "
+            f"sit <strong>{s2:+.2f}%</strong> above 2-year yields, which is the normal, healthy "
+            f"relationship. When this gap turns negative (inversion), it's often a sign that "
+            f"investors expect the economy to slow."
+        )
+
+    move = ""
+    if d2 is not None:
+        direction = "widened" if d2 > 0 else "narrowed"
+        move = (
+            f" The gap between long- and short-term rates <strong>{direction} by "
+            f"{abs(int(d2 * 100))} basis points</strong> this month "
+            f"(one basis point = 0.01%)."
+        )
+
+    return status_line + move
 
 
 def recession_text(snap, ind):
     prob = snap.get("recession_prob", 0)
     pct = round(prob * 100, 1)
+    s3 = snap.get("yield_spread_10y3m", 0)
     d = mom_delta(ind, "recession_prob")
-    level = "low" if pct < 15 else ("moderate" if pct < 30 else ("elevated" if pct < 50 else "high"))
+
+    if pct < 15:
+        level_desc = "quite low — the kind of reading you see during healthy expansions"
+    elif pct < 30:
+        level_desc = "moderate — worth watching, but not yet alarming"
+    elif pct < 50:
+        level_desc = "elevated — historically a level that warrants caution"
+    else:
+        level_desc = "high — consistent with conditions that have preceded past recessions"
+
     text = (
-        f"The Estrella-Mishkin 12-month recession probability stands at "
-        f"<strong>{pct}%</strong> — a <strong>{level}</strong> reading."
+        f"Our recession model puts the odds of a US recession starting within the next 12 months "
+        f"at <strong>{pct}%</strong>. To put that in context: {level_desc}. "
+        f"The model works by looking at the gap between 10-year and 3-month Treasury yields "
+        f"(currently <strong>{s3:+.2f}%</strong>) — the wider that gap, the lower the recession risk."
     )
     if d is not None:
-        direction = "rose" if d > 0 else "fell"
-        text += f" This {direction} <strong>{abs(d * 100):.1f} percentage points</strong> from the prior month."
-    text += " Readings above 30% are historically associated with elevated recession risk over the following year."
+        direction = "up" if d > 0 else "down"
+        text += (
+            f" The probability moved <strong>{direction} {abs(d * 100):.1f} percentage points</strong> "
+            f"from last month."
+        )
     return text
 
 
 def inflation_text(snap):
     code = snap.get("inflation_regime", 0)
     regime = REGIME_LABELS.get(code, "Normal")
-    z = snap.get("inflation_zscore", 0)
-    if z > 1.5:
-        ctx = "significantly above its 20-year historical average"
-    elif z > 0.5:
-        ctx = "above its 20-year historical average"
-    elif z < -0.5:
-        ctx = "below its 20-year historical average"
+    z = snap.get("inflation_zscore", 0) or 0
+
+    if code == -1:
+        what_it_means = (
+            "Prices are rising more slowly than usual — or even falling in some categories. "
+            "That sounds like good news, but deflation can signal weak demand and is tricky for "
+            "central banks to fight. It also tends to make debt burdens feel heavier."
+        )
+    elif code == 0:
+        what_it_means = (
+            "Price growth is in its normal historical range — not too hot, not too cold. "
+            "This gives the Federal Reserve room to adjust rates in either direction if the "
+            "economy needs it, which is generally a stable backdrop for markets."
+        )
+    elif code == 1:
+        what_it_means = (
+            f"Inflation is running <strong>above its long-run average</strong> (about "
+            f"{abs(z):.1f} standard deviations above, for those who want the stat). "
+            "That means the Fed is less likely to cut rates aggressively, and borrowing "
+            "costs — for mortgages, car loans, business credit — tend to stay higher for longer."
+        )
     else:
-        ctx = "near its 20-year historical average"
-    tail = (
-        "Elevated inflation has historically compressed equity multiples and extended central bank tightening cycles."
-        if code >= 1
-        else "Normal inflation conditions support stable monetary policy and risk appetite."
-    )
-    return (
-        f"The inflation regime is classified as <strong>{regime}</strong>, "
-        f"with a 20-year rolling z-score of <strong>{z:+.2f}</strong> — {ctx}. {tail}"
-    )
+        what_it_means = (
+            "Inflation is significantly elevated. When prices rise this fast, central banks "
+            "typically keep rates high to cool demand, which squeezes corporate profits and "
+            "makes stocks look less attractive relative to bonds."
+        )
+
+    return f"Inflation is in the <strong>{regime}</strong> regime. {what_it_means}"
 
 
 def risk_text(snap):
-    rs = snap.get("risk_score", 0)
+    rs = snap.get("risk_score", 0) or 0
     if rs > 0.3:
         label, color = "Risk-On", "#16a34a"
-        interp = "Credit spreads are contained, real rates are supportive, and the yield curve is not deeply inverted — conditions that historically favor equity and risk assets."
+        interp = (
+            "Junk bond spreads are tight (meaning investors aren't demanding a big premium "
+            "to hold risky debt), real interest rates are supportive, and the yield curve "
+            "isn't sending stress signals. Historically, conditions like these have been "
+            "favorable for stocks and other risk assets."
+        )
     elif rs < -0.3:
         label, color = "Risk-Off", "#dc2626"
-        interp = "Elevated credit spreads, negative real rates, or deep inversion signal financial stress — conditions that historically favor safe havens."
+        interp = (
+            "The model is picking up stress: corporate borrowing costs are elevated relative "
+            "to Treasuries, or real rates are negative, or the yield curve is deeply inverted. "
+            "These are the kinds of conditions where investors historically rotate toward "
+            "safer assets like government bonds and cash."
+        )
     else:
         label, color = "Neutral", "#d97706"
-        interp = "Mixed signals across credit spreads, real rates, and the yield curve leave overall risk posture in a neutral zone."
+        interp = (
+            "The signals are mixed — some indicators look fine, others are flashing caution. "
+            "There's no strong case right now for either aggressively leaning into risk or "
+            "defensively pulling back. A balanced posture makes sense."
+        )
     return (
-        f"The composite risk score is <strong style='color:{color}'>{rs:+.2f} ({label})</strong> "
-        f"on a scale of −1 to +1. {interp}"
+        f"Our composite risk gauge reads <strong style='color:{color}'>{label}</strong> "
+        f"({rs:+.2f} on a −1 to +1 scale). {interp}"
     )
 
 
 def model_commentary_text(snap):
     prob = snap.get("recession_prob", 0)
     pct = round(prob * 100, 1)
-    s3 = snap.get("yield_spread_10y3m", 0)
     code = snap.get("inflation_regime", 0)
-    regime = REGIME_LABELS.get(code, "Normal")
-    rec_comment = (
-        f"Historically, readings above 30% have preceded recessions with meaningful frequency, "
-        f"though false positives occur — particularly when the inversion is brief."
-        if pct > 20
-        else "Readings below 20% have historically been associated with expansion phases, "
-        "though the model should be read alongside other signals."
-    )
-    inf_comment = (
-        f"The current inflation regime ({regime}) is above the historical baseline. "
-        "Elevated inflation has historically been associated with tighter monetary conditions "
-        "and compressed equity multiples, though the path depends heavily on central bank credibility."
-        if code >= 1
-        else "Inflation remains near normal levels. This is consistent with an environment where "
-        "central banks retain flexibility to ease if growth disappoints, providing a potential backstop for risk assets."
-    )
-    return (
-        f"<p>The Estrella-Mishkin probit model estimates a <strong>{pct}%</strong> probability of recession "
-        f"beginning within 12 months, derived from the 10y–3m spread of <strong>{s3:+.2f}%</strong>. {rec_comment}</p>"
-        f"<p>{inf_comment}</p>"
-    )
+    rs = snap.get("risk_score", 0) or 0
+    inv = snap.get("inversion_signal", 0)
+
+    # Build a cohesive bottom-line paragraph
+    if pct < 20 and code <= 0 and rs >= 0:
+        bottom_line = (
+            "Taken together, the signals point to a relatively benign macro environment. "
+            "Recession risk is low, inflation is not a major headwind, and the risk gauge "
+            "is not flashing red. That doesn't mean markets can't fall — they can, for all "
+            "kinds of reasons — but the systematic macro backdrop isn't screaming danger."
+        )
+    elif pct >= 30 or inv:
+        bottom_line = (
+            "The yield curve is sending a warning. Historically, when short-term rates "
+            "sit above long-term rates for an extended period, a recession within 12–18 months "
+            "has followed more often than not. It's not a guarantee, but it's worth paying attention to."
+        )
+    elif code >= 1 and rs < 0:
+        bottom_line = (
+            "The combination of elevated inflation and a cautious risk gauge is worth noting. "
+            "When inflation is sticky, the Fed has less room to ride to the rescue if growth "
+            "slows. That's a trickier environment for stocks than it might look on the surface."
+        )
+    else:
+        bottom_line = (
+            "The picture is mixed. Recession risk is moderate — not alarming, but not something "
+            "to dismiss. Inflation running above its historical average means the Fed isn't "
+            "in a hurry to cut rates. Keep an eye on the yield curve and credit markets "
+            "for early signs of change."
+        )
+
+    return f"<p>{bottom_line}</p><p><em>All figures are model outputs based on public data — not investment advice.</em></p>"
 
 
 def spotlight_text(country, row):

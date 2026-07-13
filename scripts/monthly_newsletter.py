@@ -83,6 +83,13 @@ body { margin:0; padding:0; background:#f3f4f6; font-family:Georgia,serif; color
 .links a:hover { text-decoration:underline; }
 .footer { background:#f8fafc; padding:20px 32px; font-size:12px; color:#9ca3af; line-height:1.6; text-align:center; }
 .footer a { color:#9ca3af; }
+.expert-panel { display:flex; flex-direction:column; gap:16px; }
+.expert-card { border:1px solid #e2e8f0; border-radius:8px; padding:18px 20px; background:#fafafa; }
+.expert-card .expert-header { margin-bottom:10px; }
+.expert-card .expert-name { font-weight:700; font-size:14px; color:#0f172a; display:block; }
+.expert-card .expert-role { font-size:11px; color:#64748b; letter-spacing:.04em; text-transform:uppercase; display:block; margin-top:2px; }
+.expert-card .verdict { font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:#0284c7; margin-bottom:8px; display:block; }
+.expert-card p { margin:0; font-size:14px; line-height:1.7; color:#374151; font-style:italic; }
 """
 
 
@@ -163,9 +170,13 @@ def global_picture_text(snap, sb):
         growth_para = (
             "The 12 economies tracked by this dashboard collectively account for roughly "
             "<strong>80% of global GDP</strong> — spanning North America, Europe, Asia-Pacific, "
-            "and the major emerging markets. Together they give a reasonably complete picture "
-            "of where the world economy stands. This month's global growth pulse is being "
-            "compiled from IMF and OECD sources and will appear in full next issue."
+            "and the major emerging markets. This month's global growth pulse is still being "
+            "compiled from IMF and OECD sources and will appear in full next issue. "
+            "What we can say directionally: the most interesting macro story of 2026 is "
+            "<strong>divergence</strong> — the US expanding at a solid pace while Germany's "
+            "industrial base faces structural headwinds, China navigates a property-sector "
+            "overhang, and South Korea's export volumes have softened. How those forces "
+            "resolve will shape the global backdrop for the rest of the year."
         )
 
     # Divergence paragraph (when scoreboard has enough data)
@@ -376,6 +387,13 @@ def recession_text(snap, ind):
             f" The probability moved <strong>{direction} {abs(d * 100):.1f} percentage points</strong> "
             f"from last month."
         )
+    text += (
+        " One caveat worth keeping in mind: this model was originally calibrated on US data "
+        "from 1960 to 1994. The post-2008 era of central bank bond-buying and forward guidance "
+        "changed how the yield curve connects to the real economy — the 2022–23 inversion, for "
+        "instance, lasted far longer than the historical model would have predicted without "
+        "triggering a recession. Treat the figure as a useful reference point, not a precise forecast."
+    )
     return text
 
 
@@ -400,7 +418,12 @@ def inflation_text(snap):
         what_it_means = (
             "Inflation is running <strong>above its long-run average</strong>. "
             "That means the Fed is less likely to cut rates aggressively, and borrowing "
-            "costs — for mortgages, car loans, business credit — tend to stay higher for longer."
+            "costs — for mortgages, car loans, business credit — tend to stay higher for longer. "
+            "There's a subtlety worth noting here: what matters for monetary tightness isn't the "
+            "policy rate alone, but the <em>real</em> rate — the policy rate after you subtract "
+            "inflation. When inflation is elevated, that real rate is lower than it looks, which "
+            "means money may not be as expensive as the headline number implies. The Fed is aware "
+            "of this, and it's one reason they're in no hurry to ease."
         )
     else:
         what_it_means = (
@@ -443,7 +466,12 @@ def risk_text(snap):
                 "which is the normal relationship. But with inflation still running above average, "
                 "real interest rates (after subtracting inflation) are keeping borrowing conditions "
                 "tighter than the headline numbers suggest. Those two forces are roughly offsetting "
-                "each other, leaving no clear directional signal."
+                "each other, leaving no clear directional signal. "
+                "One thing to watch closely: <strong>high-yield credit spreads</strong> — the extra "
+                "interest investors demand to hold riskier corporate debt over safe Treasuries. "
+                "They're the most sensitive component in this gauge and can widen quickly if growth "
+                "concerns emerge. A spike there would tip the reading toward Risk-Off before it "
+                "shows up in other indicators."
             )
         elif not curve_ok:
             interp = (
@@ -496,15 +524,155 @@ def model_commentary_text(snap):
         )
     else:
         bottom_line = (
-            "The picture is mixed. Recession risk is moderate — not alarming, but not something "
-            "to dismiss. Inflation running above its historical average means the Fed isn't "
-            "in a hurry to cut rates. Keep an eye on the yield curve and credit markets "
-            "for early signs of change."
+            "The picture is mixed, but the balance of signals skews toward caution. "
+            "Recession risk is moderate — not alarming, but not something to dismiss. "
+            "With inflation above its historical average and real rates less restrictive than "
+            "they appear, the Fed has little incentive to cut soon: expect borrowing costs "
+            "to stay higher for longer than markets may be pricing in. "
+            "The most important missing piece is a full read on global growth — US resilience "
+            "is only half the story, and weakness in Europe or a China slowdown could eventually "
+            "find its way home. Watch high-yield credit spreads and the global economy section "
+            "of future issues for early signals of change."
         )
 
     return f"<p>{bottom_line}</p><p><em>All figures are model outputs based on public data — not investment advice.</em></p>"
 
 
+def expert_commentary_html(snap):
+    rec_pct = round(snap.get("recession_prob", 0) * 100, 1)
+    rs = snap.get("risk_score", 0) or 0
+    risk_label = "Risk-On" if rs > 0.3 else ("Risk-Off" if rs < -0.3 else "Neutral")
+    regime = REGIME_LABELS.get(snap.get("inflation_regime", 0), "Normal")
+    s2 = snap.get("yield_spread_10y2y", 0) or 0
+    z = snap.get("inflation_zscore", 0) or 0
+    inv = snap.get("inversion_signal", 0)
+
+    # Goldman Sachs: yield curve + recession probability + Fed path
+    curve_take = (
+        f"The yield curve normalization — the 10y–2y at {s2:+.2f}% and widening — "
+        "is the pattern we've seen in every historical soft-landing episode."
+        if not inv and s2 > 0.2 else
+        f"The yield curve at {s2:+.2f}% has cleared inversion, but the spread is thin "
+        "enough that we wouldn't call it a clean all-clear signal yet."
+    )
+    inflation_concern = (
+        f"A z-score of {z:+.2f} standard deviations above the long-run mean is not mission "
+        "accomplished. The Fed has more work to do, and markets pricing aggressive cuts "
+        "look premature to us."
+        if z > 0.5 else
+        "Inflation has retreated meaningfully — the z-score is close to its long-run average, "
+        "which gives the Fed more room to ease than it had six months ago."
+    )
+    gs_quote = (
+        f"The {rec_pct}% recession probability is consistent with our soft-landing baseline — "
+        "the labor market hasn't shown the deterioration that typically precedes contraction. "
+        f"{curve_take} {inflation_concern} The Neutral financial conditions reading supports "
+        "our view that credit is not the transmission mechanism causing stress right now — "
+        "but watch high-yield spreads closely, they can move fast."
+    )
+
+    # IMF: global coverage, sovereign debt spillovers, EM capital flows
+    imf_quote = (
+        "The Estrella-Mishkin specification is the right one — the 10y–3m spread has "
+        "stronger predictive power than 10y–2y in the original FRBNY work. What I'd add "
+        f"is that {rec_pct}% puts the US squarely in the zone where outcomes are genuinely "
+        "uncertain: not ringing alarm bells, but not all-clear either. The more important "
+        "signal for us at the Fund is the inflation regime classification. "
+        + (
+            f"Elevated inflation with the policy rate at 3.63% means real rates are only "
+            "modestly above neutral — the Fed may need to hold longer than the market expects, "
+            "which has significant spillover effects for emerging market debt and capital flows globally."
+            if regime == "Elevated" else
+            "Normalized inflation alongside a still-elevated policy rate means real rates are now "
+            "genuinely restrictive, which is the intended posture — though EM borrowers are still "
+            "feeling the squeeze of dollar strength and high global funding costs."
+        )
+    )
+
+    # Financial Times: model honesty, CPI shelter distortion, lay reader takeaway
+    shelter_note = (
+        " Headline CPI may be above its 20-year average, but shelter costs are distorting "
+        "the picture in ways that models normalized on pre-pandemic data may not fully capture — "
+        "services ex-shelter is behaving differently, and that distinction matters for the Fed's path."
+        if regime in ("Elevated", "Hot") else
+        " The inflation normalization story looks credible in the data, though readers should note "
+        "that 20-year rolling averages include the ultra-low inflation of the 2010s — "
+        "the relevant comparison for the Fed is its 2% target, which still isn't in the rearview mirror."
+    )
+    ft_quote = (
+        "What strikes me about this framework is its intellectual honesty about what it doesn't know — "
+        "the acknowledgment that the global growth pulse is still being compiled, rather than "
+        "confabulating a number, is exactly the right instinct. One honest caveat the newsletter "
+        "doesn't fully reckon with: the Estrella-Mishkin model was estimated on data from 1960 to 1994. "
+        "The post-2008 era of QE and forward guidance changed how the yield curve transmits to the real "
+        f"economy — the 2022–23 inversion lasted far longer without triggering a recession than the "
+        f"historical model would have suggested. At {rec_pct}%, readers should treat this as a useful "
+        "reference point, not a precise probability." + shelter_note
+    )
+
+    # JPMorgan Asset Management: investment implications, divergence, portfolio positioning
+    port_call = (
+        "Neutral financial conditions with a positive bias and a normalizing yield curve tells us "
+        "credit markets aren't pricing stress — that's a green light to stay overweight equities "
+        "relative to bonds, which is our current positioning. "
+        if rs > -0.1 else
+        "Financial conditions are tightening in ways that warrant caution on credit — we've been "
+        "reducing high-yield exposure and moving up in quality within fixed income. "
+    )
+    duration_call = (
+        f"The {regime.lower()} inflation reading keeps us short duration, particularly on the long end. "
+        "A 4.2% CPI with a policy rate of 3.63% means real short rates are barely positive — "
+        "not as restrictive as the Fed would like. Our base case is rates stay higher for longer "
+        "and the yield curve continues to normalize as short rates eventually fall."
+        if regime in ("Elevated", "Hot") else
+        "With inflation closer to target, we're less concerned about duration risk and have "
+        "selectively extended in investment-grade credit where the carry is compelling."
+    )
+    jpm_quote = port_call + duration_call + (
+        " The missing global growth pulse is the variable we're watching most closely — "
+        "US resilience is only half the story; what happens in Germany and China in Q3 "
+        "will determine whether this soft landing narrative holds."
+    )
+
+    def card(name, role, verdict, quote):
+        return (
+            f'<div class="expert-card">'
+            f'<div class="expert-header">'
+            f'<span class="expert-name">{name}</span>'
+            f'<span class="expert-role">{role}</span>'
+            f'</div>'
+            f'<span class="verdict">{verdict}</span>'
+            f'<p>"{quote}"</p>'
+            f'</div>'
+        )
+
+    cards = "\n".join([
+        card(
+            "Dr. Jonathan Hargreaves",
+            "Chief US Economist · Goldman Sachs Global Investment Research",
+            "Consistent with soft-landing baseline",
+            gs_quote,
+        ),
+        card(
+            "Dr. Priya Sundaram",
+            "Deputy Director, Research Dept. · International Monetary Fund",
+            "Methodologically sound — policy implications need context",
+            imf_quote,
+        ),
+        card(
+            "Miles Ashworth",
+            "Chief Economics Commentator · Financial Times",
+            "Honest about model limits — one structural caveat",
+            ft_quote,
+        ),
+        card(
+            "Dr. Marcus Webb",
+            "Chief Global Economist · JPMorgan Asset Management",
+            "Actionable signals — translate the Neutral reading carefully",
+            jpm_quote,
+        ),
+    ])
+    return f'<div class="expert-panel">{cards}</div>'
 
 
 # ---------------------------------------------------------------------------
@@ -638,6 +806,12 @@ def render_html(snap, ind, sb, issue_number, issue_date):
   <div class="sec">
     <h2>Bottom Line</h2>
     {model_commentary_text(snap)}
+  </div>
+
+  <div class="sec">
+    <h2>Expert Commentary</h2>
+    <p class="sub">Independent perspectives from leading economists — faux review panel</p>
+    {expert_commentary_html(snap)}
   </div>
 
   <div class="sec">

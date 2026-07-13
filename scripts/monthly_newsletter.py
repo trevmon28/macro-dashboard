@@ -97,6 +97,16 @@ body { margin:0; padding:0; background:#f3f4f6; font-family:Georgia,serif; color
 .voice-card .attr strong { color:#0f172a; font-style:normal; display:block; margin-bottom:1px; }
 .voice-card .attr a { color:#0284c7; font-size:11px; text-decoration:none; }
 .voice-card .attr a:hover { text-decoration:underline; }
+.sb-wrap { overflow-x:auto; margin:4px 0; }
+.sb { width:100%; border-collapse:collapse; font-size:12px; }
+.sb th { text-align:center; padding:7px 8px; font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:#6b7280; border-bottom:2px solid #e5e7eb; background:#f8fafc; line-height:1.4; }
+.sb td { padding:6px 8px; text-align:center; border-bottom:1px solid #f1f5f9; font-size:12px; font-family:'Courier New',monospace; }
+.sb .sb-cn { text-align:left; font-weight:600; font-size:12px; color:#0f172a; white-space:nowrap; font-family:Georgia,serif; padding-left:4px; }
+.sb .sb-na { color:#cbd5e1; font-family:'Courier New',monospace; }
+.sb-g { background:#d1fae5; color:#065f46; border-radius:3px; padding:1px 5px; display:inline-block; }
+.sb-a { background:#fef3c7; color:#78350f; border-radius:3px; padding:1px 5px; display:inline-block; }
+.sb-r { background:#fee2e2; color:#991b1b; border-radius:3px; padding:1px 5px; display:inline-block; }
+.sb-note { font-size:11px; color:#94a3b8; margin:8px 0 0; line-height:1.5; }
 """
 
 
@@ -104,11 +114,59 @@ body { margin:0; padding:0; background:#f3f4f6; font-family:Georgia,serif; color
 # Data loading
 # ---------------------------------------------------------------------------
 
+def _parse_scoreboard_from_dashboard():
+    """Scrape country scoreboard from the generated dashboard HTML (fallback)."""
+    dashboard_path = ROOT / "docs" / "index.html"
+    if not dashboard_path.exists():
+        return None
+    try:
+        from bs4 import BeautifulSoup
+        with open(dashboard_path, encoding="utf-8") as f:
+            soup = BeautifulSoup(f.read(), "html.parser")
+        table = soup.find("table", class_="sb")
+        if not table:
+            return None
+        col_names = ["gdp_actual", "gdp_forecast", "inflation", "unemployment",
+                     "current_account", "govt_debt", "policy_rate", "stock_ytd"]
+        records = {}
+        for tr in table.find("tbody").find_all("tr"):
+            cells = tr.find_all("td")
+            if len(cells) < 9:
+                continue
+            country = cells[0].get_text(strip=True)
+            vals = {}
+            for i, td in enumerate(cells[1:]):
+                if i >= len(col_names):
+                    break
+                txt = td.get_text(strip=True).replace("+", "").strip()
+                try:
+                    vals[col_names[i]] = float(txt) if txt not in ("N/A", "", "—") else float("nan")
+                except ValueError:
+                    vals[col_names[i]] = float("nan")
+            records[country] = vals
+        if not records:
+            return None
+        df = pd.DataFrame.from_dict(records, orient="index")
+        df.index.name = "country"
+        df["data_source"] = "dashboard"
+        return df
+    except Exception as e:
+        print(f"  WARNING: dashboard scoreboard parse failed: {e}")
+        return None
+
+
 def load_data():
     snap = json.loads((DATA_DIR / "latest_snapshot.json").read_text(encoding="utf-8"))
     ind = pd.read_parquet(DATA_DIR / "indicators.parquet")
     ind.index = pd.to_datetime(ind.index)
     sb = pd.read_parquet(DATA_DIR / "country_scoreboard.parquet")
+    # Fall back to dashboard HTML when the parquet only has stub data
+    gdp_count = sb["gdp_actual"].notna().sum() if "gdp_actual" in sb.columns else 0
+    if gdp_count < 4:
+        dash_sb = _parse_scoreboard_from_dashboard()
+        if dash_sb is not None and dash_sb["gdp_actual"].notna().sum() > gdp_count:
+            sb = dash_sb
+            print("  INFO: scoreboard loaded from dashboard HTML")
     return snap, ind, sb
 
 
@@ -252,41 +310,132 @@ def global_picture_text(snap, sb):
 
 
 def country_snapshot_html(sb):
-    cols = ["gdp_actual", "inflation", "unemployment", "policy_rate", "stock_ytd"]
-    labels = ["GDP %", "CPI %", "Unemp %", "Rate %", "Equity YTD"]
-    available = [c for c in cols if c in sb.columns and sb[c].notna().any()]
-    if not available:
-        return ""
+    """Full 8-column color-coded scoreboard matching the dashboard."""
+
+    THRESHOLDS = {
+        "gdp_actual":      [(2.0, "g"), (0.5, "a"), (None, "r")],
+        "gdp_forecast":    [(2.0, "g"), (0.5, "a"), (None, "r")],
+        "inflation":       [(2.5, "g"), (4.5, "a"), (None, "r")],   # low = good
+        "unemployment":    [(5.0, "g"), (7.5, "a"), (None, "r")],   # low = good
+        "current_account": [(0.0, "g"), (-3.0, "a"), (None, "r")],
+        "govt_debt":       [(60.0, "g"), (90.0, "a"), (None, "r")], # low = good
+        "stock_ytd":       [(0.0, "g"), (-10.0, "a"), (None, "r")],
+    }
+    LOW_IS_GOOD = {"inflation", "unemployment", "govt_debt"}
+
+    def _color(v, col):
+        if col not in THRESHOLDS or pd.isna(v):
+            return None
+        thresholds = THRESHOLDS[col]
+        if col in LOW_IS_GOOD:
+            # ascending thresholds: green if below first cutoff
+            for cutoff, cls in thresholds[:-1]:
+                if v <= cutoff:
+                    return cls
+            return thresholds[-1][1]
+        else:
+            for cutoff, cls in thresholds[:-1]:
+                if v >= cutoff:
+                    return cls
+            return thresholds[-1][1]
 
     def _cell(v, col):
-        if v is None or (isinstance(v, float) and v != v):
-            return '<td style="color:#cbd5e1">—</td>'
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return '<td class="sb-na">N/A</td>'
         fv = float(v)
-        if col == "stock_ytd":
-            cls = "pill-g" if fv >= 0 else "pill-r"
-            return f'<td><span class="pill {cls}">{fv:+.1f}%</span></td>'
-        return f"<td>{fv:.1f}</td>"
+        cls = _color(fv, col)
+        if col in ("gdp_actual", "gdp_forecast", "current_account", "stock_ytd"):
+            txt = f"{fv:+.1f}"
+        elif col == "govt_debt":
+            txt = f"{int(round(fv))}"
+        else:
+            txt = f"{fv:.2f}" if col == "policy_rate" else f"{fv:.1f}"
+        inner = f'<span class="sb-{cls}">{txt}</span>' if cls else txt
+        return f"<td>{inner}</td>"
 
-    hdr_cells = "".join(f"<th>{labels[cols.index(c)]}</th>" for c in available)
-    rows = ""
+    COLS = ["gdp_actual", "gdp_forecast", "inflation", "unemployment",
+            "current_account", "govt_debt", "policy_rate", "stock_ytd"]
+    HDRS = ["GDP %<br>Actual", "GDP %<br>Forecast", "CPI %", "Unemp %",
+            "Curr Acct<br>% GDP", "Govt Debt<br>% GDP", "Policy<br>Rate %", "Stock<br>YTD %"]
+
+    rows_html = ""
     for country in COUNTRIES:
         if country not in sb.index:
             continue
         row = sb.loc[country]
-        if all(row.get(c) is None or (isinstance(row.get(c), float) and row.get(c) != row.get(c)) for c in available):
-            continue
-        cells = "".join(_cell(row.get(c), c) for c in available)
-        rows += f"<tr><td><strong>{country}</strong></td>{cells}</tr>\n"
+        cells = "".join(_cell(row.get(c), c) for c in COLS)
+        rows_html += f'<tr><td class="sb-cn">{country}</td>{cells}</tr>\n'
 
-    if not rows:
+    if not rows_html:
         return ""
 
+    hdr = "".join(f"<th>{h}</th>" for h in HDRS)
+    gdp_count = int(sb["gdp_actual"].notna().sum()) if "gdp_actual" in sb.columns else 0
+    na_countries = [c for c in COUNTRIES if c in sb.index and pd.isna(sb.loc[c].get("gdp_actual", float("nan")))]
+    na_note = ""
+    if na_countries:
+        na_note = (
+            f" <strong>{', '.join(na_countries)}</strong> show partial data this month — "
+            "their macro statistics come from IMF WEO or OECD, which publish quarterly "
+            "or semi-annually rather than monthly."
+        )
+
     return (
-        f'<table class="sb-table"><thead><tr>'
-        f'<th>Economy</th>{hdr_cells}</tr></thead>'
-        f'<tbody>{rows}</tbody></table>'
-        f'<p class="flag">Sources: OECD (9 members) · IMF WEO (China, India, Brazil) · FRED (US rates)</p>'
+        f'<div class="sb-wrap"><table class="sb"><thead><tr>'
+        f'<th>Economy</th>{hdr}</tr></thead>'
+        f'<tbody>{rows_html}</tbody></table>'
+        f'<p class="sb-note">{gdp_count} of {len(COUNTRIES)} economies have full data this month.{na_note}'
+        f' Sources: FRED (US) &middot; OECD SDMX (Europe, Japan, Canada, Australia) &middot; IMF WEO (India, Brazil, China).</p>'
+        f'</div>'
     )
+
+
+def scoreboard_summary_text(sb):
+    """2–3 sentence narrative summarising the scoreboard."""
+    if sb is None or sb.empty:
+        return ""
+
+    gdp   = sb["gdp_actual"].dropna() if "gdp_actual" in sb.columns else pd.Series(dtype=float)
+    cpi   = sb["inflation"].dropna()  if "inflation"  in sb.columns else pd.Series(dtype=float)
+    stock = sb["stock_ytd"].dropna()  if "stock_ytd"  in sb.columns else pd.Series(dtype=float)
+
+    parts = []
+
+    if len(gdp) >= 3:
+        top_g, top_v = gdp.idxmax(), gdp.max()
+        bot_g, bot_v = gdp.idxmin(), gdp.min()
+        parts.append(
+            f"<strong>{top_g}</strong> leads the growth table at <strong>{top_v:+.1f}%</strong>, "
+            f"while <strong>{bot_g}</strong> is at the bottom with <strong>{bot_v:+.1f}%</strong> — "
+            f"a {top_v - bot_v:.1f}-point spread that reflects a deeply uneven global cycle."
+        )
+
+    if len(cpi) >= 3:
+        low_inf  = cpi[cpi <= 2.5]
+        high_inf = cpi[cpi > 3.5]
+        if len(low_inf) >= len(cpi) / 2:
+            parts.append(
+                f"On inflation, {len(low_inf)} of {len(cpi)} economies with data are at or below 2.5% — "
+                "the post-hike disinflation has broadly landed, though pockets of stickiness remain."
+            )
+        elif len(high_inf) >= 2:
+            names = ", ".join(high_inf.index.tolist()[:3])
+            parts.append(
+                f"Inflation is still running above 3.5% in {len(high_inf)} economies ({names}), "
+                "keeping their central banks cautious on the path to rate cuts."
+            )
+
+    if len(stock) >= 3:
+        top_s, top_sv = stock.idxmax(), stock.max()
+        bot_s, bot_sv = stock.idxmin(), stock.min()
+        if abs(top_sv) > 5 or abs(bot_sv) > 5:
+            parts.append(
+                f"Equity markets are split: <strong>{top_s}</strong> leads year-to-date at "
+                f"<strong>{top_sv:+.1f}%</strong>, while <strong>{bot_s}</strong> is the laggard "
+                f"at <strong>{bot_sv:+.1f}%</strong>."
+            )
+
+    return "<p>" + " ".join(parts) + "</p>" if parts else ""
 
 
 def country_in_focus_text(country, row):
@@ -774,22 +923,8 @@ def render_html(snap, ind, sb, issue_number, issue_date):
     focus_row = sb.loc[focus_country] if focus_country in sb.index else pd.Series(dtype=float)
     focus_text = country_in_focus_text(focus_country, focus_row)
 
-    # Country snapshot table — only show when enough countries have data
-    has_data_count = sb["gdp_actual"].notna().sum() if "gdp_actual" in sb.columns else 0
-    sb_html = country_snapshot_html(sb) if has_data_count >= 4 else ""
-
-    # Equity movers
-    gainers, losers = biggest_movers(sb)
-    mover_items = ""
-    for c, v in gainers:
-        mover_items += f"<li><strong>{c}</strong> equity {v:+.1f}% YTD — top performer</li>\n"
-    for c, v in losers:
-        mover_items += f"<li><strong>{c}</strong> equity {v:+.1f}% YTD — laggard</li>\n"
-
-    equity_block = (
-        f"<p><strong>Equity market standouts this month:</strong></p><ul>{mover_items}</ul>"
-        if mover_items.strip() else ""
-    )
+    sb_html    = country_snapshot_html(sb)
+    sb_summary = scoreboard_summary_text(sb)
 
     focus_block = (
         f"""<div class="sec">
@@ -825,7 +960,12 @@ def render_html(snap, ind, sb, issue_number, issue_date):
     {global_picture_text(snap, sb)}
   </div>
 
-  {"<div class='sec'><h2>Economy Snapshot</h2><p class='sub'>12 major economies — " + str(round(80)) + "% of global GDP</p>" + sb_html + "</div>" if sb_html else ""}
+  <div class="sec">
+    <h2>Economy Snapshot</h2>
+    <p class="sub">12 major economies — ~80% of global GDP</p>
+    {sb_summary}
+    {sb_html}
+  </div>
 
   {focus_block}
 
@@ -860,7 +1000,6 @@ def render_html(snap, ind, sb, issue_number, issue_date):
     <p>{recession_text(snap, ind)}</p>
     <p>{inflation_text(snap)}</p>
     <p>{risk_text(snap)}</p>
-    {equity_block}
   </div>
 
   <div class="sec">

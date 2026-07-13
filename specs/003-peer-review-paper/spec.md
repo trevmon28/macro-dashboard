@@ -157,5 +157,5 @@ All equations and constants (e.g., Estrella-Mishkin coefficients âˆ’0.6521 and â
 ## Open Questions
 
 1. **PDF generation**: Is `weasyprint` acceptable, or should this remain HTML-only for simplicity?
-2. **Author affiliation**: Should the paper list an institutional affiliation (e.g., "Independent Researcher, Dallas TX") or a faux one?
+2. **Author affiliation**: Should the paper list an institutional affiliation or a faux one? Current: "Independent Researcher" (no location).
 3. **Appendix C framing**: Should reviewer reports be framed as "double-blind" with authors anonymized, or acknowledged review?

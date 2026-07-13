@@ -245,8 +245,8 @@ def risk_text(snap):
         f"Our <strong>Financial Conditions Gauge</strong> reads "
         f"<strong style='color:{color}'>{label}</strong> ({rs:+.2f} on a −1 to +1 scale). "
         f"It combines three signals: <em>high-yield credit spreads</em> (do investors trust "
-        f"risky borrowers?), <em>real interest rates</em> (is money actually cheap after "
-        f"inflation?), and the <em>yield curve shape</em> (is the bond market worried about "
+        f"risky borrowers?), <em>real interest rates</em> (the interest rate after you subtract "
+        f"inflation), and the <em>yield curve shape</em> (is the bond market worried about "
         f"a slowdown?). {interp}"
     )
 

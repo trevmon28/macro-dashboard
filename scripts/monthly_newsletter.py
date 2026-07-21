@@ -1,14 +1,17 @@
 """
 monthly_newsletter.py — Global Macro Pulse newsletter generator.
 
-Reads data/outputs/ and produces:
-  docs/newsletter/YYYY-MM.html  — this month's issue
-  docs/newsletter/index.html    — updated archive index
+Runs weekly (alongside the pipeline). Reads data/outputs/ and produces:
+  docs/newsletter/YYYY-MM-DD.html  — this issue
+  docs/newsletter/index.html       — updated archive index
 
-Optionally sends via Buttondown if BUTTONDOWN_API_KEY is set.
+Issue number auto-increments from the count of existing issues in
+docs/newsletter/ unless --issue is passed explicitly.
+
+Optionally sends via Buttondown if BUTTONDOWN_API_KEY is set and --send is passed.
 
 Usage:
-    python scripts/monthly_newsletter.py --issue 1 [--send]
+    python scripts/monthly_newsletter.py [--issue N] [--send]
 """
 
 import argparse
@@ -235,7 +238,7 @@ def global_picture_text(snap, sb):
         growth_para = (
             "The 12 economies tracked by this dashboard collectively account for roughly "
             "<strong>80% of global GDP</strong> — spanning North America, Europe, Asia-Pacific, "
-            "and the major emerging markets. This month's global growth pulse is still being "
+            "and the major emerging markets. This week's global growth pulse is still being "
             "compiled from IMF and OECD sources and will appear in full next issue. "
             "What we can say directionally: the most interesting macro story of 2026 is "
             "<strong>divergence</strong> — the US expanding at a solid pace while Germany's "
@@ -260,7 +263,7 @@ def global_picture_text(snap, sb):
             )
         else:
             divergence_para = (
-                f"Growth is relatively synchronized across the major economies this month — "
+                f"Growth is relatively synchronized across the major economies this week — "
                 f"<strong>{top_c}</strong> leads at <strong>{top_v:.1f}%</strong> while "
                 f"<strong>{bot_c}</strong> trails at <strong>{bot_v:.1f}%</strong>, "
                 f"a narrower gap than we've seen in recent years."
@@ -501,14 +504,14 @@ def yield_curve_text(snap, ind):
         if d2 > 0:
             move = (
                 f" The gap between long- and short-term rates <strong>widened by "
-                f"{abs(int(d2 * 100))} basis points</strong> this month "
+                f"{abs(int(d2 * 100))} basis points</strong> this week "
                 f"(one basis point = 0.01%) — a positive sign, meaning the curve is moving "
                 f"further from inversion territory."
             )
         else:
             move = (
                 f" The gap between long- and short-term rates <strong>narrowed by "
-                f"{abs(int(d2 * 100))} basis points</strong> this month "
+                f"{abs(int(d2 * 100))} basis points</strong> this week "
                 f"(one basis point = 0.01%) — a cautionary sign, meaning the curve is "
                 f"moving closer to inversion territory."
             )
@@ -890,7 +893,7 @@ def voices_html():
 
 def render_html(snap, ind, sb, issue_number, issue_date):
     as_of = snap.get("as_of", str(date.today()))
-    month_str = issue_date.strftime("%B %Y")
+    date_str = issue_date.strftime("%B %d, %Y")
 
     rs = snap.get("risk_score", 0) or 0
     risk_label = "Risk-On" if rs > 0.3 else ("Risk-Off" if rs < -0.3 else "Neutral")
@@ -929,7 +932,7 @@ def render_html(snap, ind, sb, issue_number, issue_date):
     focus_block = (
         f"""<div class="sec">
     <h2>Country in Focus</h2>
-    <p class="sub">Rotating spotlight — this month: {focus_country}</p>
+    <p class="sub">Rotating spotlight — this week: {focus_country}</p>
     <div class="spotlight">
       <p style="margin:0;font-size:15px;line-height:1.7">{focus_text}</p>
     </div>
@@ -942,7 +945,7 @@ def render_html(snap, ind, sb, issue_number, issue_date):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Global Macro Pulse — Issue #{issue_number} · {month_str}</title>
+<title>Global Macro Pulse — Issue #{issue_number} · {date_str}</title>
 <style>{CSS}</style>
 </head>
 <body>
@@ -950,12 +953,12 @@ def render_html(snap, ind, sb, issue_number, issue_date):
 
   <div class="hdr">
     <h1>Global Macro Pulse</h1>
-    <p class="issue">Issue #{issue_number} &nbsp;·&nbsp; {month_str} &nbsp;·&nbsp; Data as of {as_of}</p>
+    <p class="issue">Issue #{issue_number} &nbsp;·&nbsp; {date_str} &nbsp;·&nbsp; Data as of {as_of}</p>
     <p class="tagline">{tagline}</p>
   </div>
 
   <div class="sec">
-    <h2>The World This Month</h2>
+    <h2>The World This Week</h2>
     <p class="sub">Global growth, inflation, and central bank divergence</p>
     {global_picture_text(snap, sb)}
   </div>
@@ -1009,7 +1012,7 @@ def render_html(snap, ind, sb, issue_number, issue_date):
 
   <div class="sec">
     <h2>Voices</h2>
-    <p class="sub">What global economic leaders are saying this month</p>
+    <p class="sub">What global economic leaders are saying this week</p>
     {voices_html()}
   </div>
 
@@ -1036,10 +1039,10 @@ def render_html(snap, ind, sb, issue_number, issue_date):
 # Archive index
 # ---------------------------------------------------------------------------
 
-def update_index(issue_file: Path, issue_number: int, month_str: str, tagline: str):
+def update_index(issue_file: Path, issue_number: int, date_str: str, tagline: str):
     index_path = NL_DIR / "index.html"
     new_li = (
-        f'      <li><a href="{issue_file.name}">Issue #{issue_number} — {month_str}</a>'
+        f'      <li><a href="{issue_file.name}">Issue #{issue_number} — {date_str}</a>'
         f' &nbsp;<span style="color:#6b7280;font-size:13px">{tagline}</span></li>'
     )
     if index_path.exists():
@@ -1068,7 +1071,7 @@ def update_index(issue_file: Path, issue_number: int, month_str: str, tagline: s
 </head>
 <body>
 <h1>Global Macro Pulse</h1>
-<p style="color:#6b7280;font-size:14px">Monthly macro newsletter — auto-generated from public data (FRED, World Bank, IMF WEO).</p>
+<p style="color:#6b7280;font-size:14px">Weekly macro newsletter — auto-generated from public data (FRED, World Bank, IMF WEO).</p>
 <ul>
 <!-- ISSUES -->
 {new_li}
@@ -1110,7 +1113,10 @@ def send_email(subject: str, html: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Generate Global Macro Pulse newsletter")
-    parser.add_argument("--issue", type=int, default=1, help="Issue number (default: 1)")
+    parser.add_argument(
+        "--issue", type=int, default=None,
+        help="Issue number (default: auto-increment from existing issues in docs/newsletter/)",
+    )
     parser.add_argument("--send", action="store_true", help="Send via Buttondown API")
     args = parser.parse_args()
 
@@ -1118,14 +1124,21 @@ def main():
 
     as_of = snap.get("as_of", str(date.today()))
     issue_date = datetime.strptime(as_of, "%Y-%m-%d")
-    month_str = issue_date.strftime("%B %Y")
-    ym = issue_date.strftime("%Y-%m")
+    date_str = issue_date.strftime("%B %d, %Y")
+    ymd = issue_date.strftime("%Y-%m-%d")
 
     NL_DIR.mkdir(parents=True, exist_ok=True)
 
-    html = render_html(snap, ind, sb, args.issue, issue_date)
+    if args.issue is not None:
+        issue_number = args.issue
+    else:
+        # Exclude today's own file so re-running for the same as_of date is idempotent.
+        existing = [p for p in NL_DIR.glob("*.html") if p.name not in ("index.html", f"{ymd}.html")]
+        issue_number = len(existing) + 1
 
-    out_path = NL_DIR / f"{ym}.html"
+    html = render_html(snap, ind, sb, issue_number, issue_date)
+
+    out_path = NL_DIR / f"{ymd}.html"
     out_path.write_text(html, encoding="utf-8")
     print(f"Written: {out_path}")
 
@@ -1133,11 +1146,11 @@ def main():
     risk_label = "Risk-On" if rs > 0.3 else ("Risk-Off" if rs < -0.3 else "Neutral")
     rec_pct = round(snap.get("recession_prob", 0) * 100, 1)
     tagline = f"Recession {rec_pct}% · {risk_label}"
-    update_index(out_path, args.issue, month_str, tagline)
+    update_index(out_path, issue_number, date_str, tagline)
     print(f"Index updated: {NL_DIR / 'index.html'}")
 
     if args.send:
-        subject = f"Global Macro Pulse — {month_str}"
+        subject = f"Global Macro Pulse — {date_str}"
         send_email(subject, html)
 
 

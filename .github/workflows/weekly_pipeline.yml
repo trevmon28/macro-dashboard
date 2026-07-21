@@ -48,6 +48,12 @@ jobs:
           papermill notebooks/04_render.ipynb notebooks/04_render_out.ipynb \
             -p run_date "$(date -u +%Y-%m-%d)"
 
+      - name: Build methodology paper
+        run: python scripts/build_paper.py
+
+      - name: Generate weekly newsletter
+        run: python scripts/monthly_newsletter.py
+
       - name: Commit outputs and docs
         run: |
           git config user.name "github-actions[bot]"

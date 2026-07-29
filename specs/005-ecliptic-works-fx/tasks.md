@@ -17,11 +17,11 @@
 
 **Purpose**: Project scaffolding per plan.md's Project Structure section
 
-- [ ] T001 Create directory structure under `Ecliptic-works/`: `ecliptic/{data,harness,factors,conditioning,execution,backtest,research}/`, `tests/{unit,integration}/`, `configs/`, `data/{raw/fx,raw/macro,processed,signals,trials,execution}/` (data/ gitignored)
-- [ ] T002 [P] Create `Ecliptic-works/requirements_ecliptic.txt` with `duka`, `ib_insync`, `pyarrow`, `scipy`, `scikit-learn` and install into `macro_env` (research.md §8)
-- [ ] T003 [P] Create `Ecliptic-works/configs/baseline.yml` — default research config (carry bins, momentum window, DSR threshold, embargo days, per research.md decisions table)
-- [ ] T004 [P] Add `Ecliptic-works/.gitignore` entry for `data/` (all artifacts, per plan.md Structure Decision)
-- [ ] T005 [P] Add `__init__.py` to every `ecliptic/` subpackage and `tests/{unit,integration}/`
+- [x] T001 Create directory structure under `Ecliptic-works/`: `ecliptic/{data,harness,factors,conditioning,execution,backtest,research}/`, `tests/{unit,integration}/`, `configs/`, `data/{raw/fx,raw/macro,processed,signals,trials,execution}/` (data/ gitignored)
+- [x] T002 [P] Create `Ecliptic-works/requirements_ecliptic.txt` with `duka`, `ib_insync`, `pyarrow`, `scipy`, `scikit-learn` and install into `macro_env` (research.md §8) — also added `pyyaml` (needed by `config.py`, T008); `macro_env`'s venv had no `pip` bootstrapped, fixed via `ensurepip` before installing
+- [x] T003 [P] Create `Ecliptic-works/configs/baseline.yml` — default research config (carry bins, momentum window, DSR threshold, embargo days, per research.md decisions table)
+- [x] T004 [P] Add `Ecliptic-works/.gitignore` entry for `data/` (all artifacts, per plan.md Structure Decision)
+- [x] T005 [P] Add `__init__.py` to every `ecliptic/` subpackage and `tests/{unit,integration}/`
 
 **Checkpoint**: Directory scaffold and dependencies ready.
 
@@ -33,9 +33,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Create `Ecliptic-works/ecliptic/paths.py` — central path constants for every `data/` subdirectory listed in data-model.md's Storage Layout
-- [ ] T007 [P] Create `Ecliptic-works/ecliptic/io_utils.py` — shared Parquet read/append-write helpers (used by data, harness, and execution layers; enforces plan.md invariant 5 — execution logs are append-only, never mutated)
-- [ ] T008 [P] Create `Ecliptic-works/ecliptic/config.py` — loads `configs/baseline.yml` and exposes `FRED_API_KEY`, `ECLIPTIC_PORTFOLIO_SIZE`, `ECLIPTIC_DSR_THRESHOLD`, `ECLIPTIC_IBKR_PORT`, `ECLIPTIC_RISK_STALENESS_DAYS` env vars (quickstart.md's Key Environment Variables table)
+- [x] T006 Create `Ecliptic-works/ecliptic/paths.py` — central path constants for every `data/` subdirectory listed in data-model.md's Storage Layout
+- [x] T007 [P] Create `Ecliptic-works/ecliptic/io_utils.py` — shared Parquet read/append-write helpers (used by data, harness, and execution layers; enforces plan.md invariant 5 — execution logs are append-only, never mutated)
+- [x] T008 [P] Create `Ecliptic-works/ecliptic/config.py` — loads `configs/baseline.yml` and exposes `FRED_API_KEY`, `ECLIPTIC_PORTFOLIO_SIZE`, `ECLIPTIC_DSR_THRESHOLD`, `ECLIPTIC_IBKR_PORT`, `ECLIPTIC_RISK_STALENESS_DAYS` env vars (quickstart.md's Key Environment Variables table)
 
 **Checkpoint**: Foundation ready — User Story 1 can now begin.
 

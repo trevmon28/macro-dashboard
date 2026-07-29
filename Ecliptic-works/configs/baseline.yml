@@ -1,0 +1,32 @@
+# Baseline research configuration — Ecliptic Works Phase 1
+# See specs/005-ecliptic-works-fx/research.md for rationale behind each default.
+
+universe:
+  pairs: [EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD, NZDUSD, USDSEK, USDNOK]
+  min_valid_currencies: 6   # skip a rebalance period if fewer than this have valid data
+
+carry:
+  bins: 5                   # 3-5 portfolios sorted by forward discount; default to 5
+  rebalance: monthly
+
+momentum:
+  formation_window_months: 1
+  holding_period_months: 1
+  long_short_n: 3            # top-3 / bottom-3, dollar-neutral
+  skip_month: false          # not applied for FX momentum per Menkhoff et al.
+
+harness:
+  dsr_threshold: 0.5
+  min_monthly_observations: 60
+  cv_scheme: walk_forward_expanding
+  embargo_trading_days: 10   # max(1, ceil(2 * autocorrelation_halflife)); default halflife ~5 days
+
+conditioning:
+  risk_staleness_days: 7
+  exposure_floor: 0.0
+  exposure_ceiling: 1.0
+
+execution:
+  ibkr_port: 7497             # paper account
+  portfolio_size_usd: 100000
+  reconciliation_tolerance_usd: 100

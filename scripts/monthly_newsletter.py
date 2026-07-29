@@ -110,6 +110,8 @@ body { margin:0; padding:0; background:#f3f4f6; font-family:Georgia,serif; color
 .sb-a { background:#fef3c7; color:#78350f; border-radius:3px; padding:1px 5px; display:inline-block; }
 .sb-r { background:#fee2e2; color:#991b1b; border-radius:3px; padding:1px 5px; display:inline-block; }
 .sb-note { font-size:11px; color:#94a3b8; margin:8px 0 0; line-height:1.5; }
+.sb .sb-stale { opacity:0.5; }
+.sb .stale-mark { color:#b45309; font-size:9px; margin-left:1px; }
 """
 
 
@@ -141,7 +143,8 @@ def _parse_scoreboard_from_dashboard():
             for i, td in enumerate(cells[1:]):
                 if i >= len(col_names):
                     break
-                txt = td.get_text(strip=True).replace("+", "").strip()
+                # Strip the staleness dagger (specs/006) so values still parse.
+                txt = td.get_text(strip=True).replace("+", "").replace("†", "").strip()
                 try:
                     vals[col_names[i]] = float(txt) if txt not in ("N/A", "", "—") else float("nan")
                 except ValueError:
@@ -342,9 +345,14 @@ def country_snapshot_html(sb):
                     return cls
             return thresholds[-1][1]
 
-    def _cell(v, col):
+    def _cell(row, col):
+        # Three states, never blank (specs/006 US3): fresh value (title = as-of
+        # date), stale value (muted + dagger), or explicit N/A. Falls back
+        # gracefully when as_of/stale columns are absent (e.g. dashboard-scraped
+        # scoreboard, which has no vintage metadata).
+        v = row.get(col)
         if v is None or (isinstance(v, float) and pd.isna(v)):
-            return '<td class="sb-na">N/A</td>'
+            return '<td class="sb-na" title="not reported">N/A</td>'
         fv = float(v)
         cls = _color(fv, col)
         if col in ("gdp_actual", "gdp_forecast", "current_account", "stock_ytd"):
@@ -354,7 +362,14 @@ def country_snapshot_html(sb):
         else:
             txt = f"{fv:.2f}" if col == "policy_rate" else f"{fv:.1f}"
         inner = f'<span class="sb-{cls}">{txt}</span>' if cls else txt
-        return f"<td>{inner}</td>"
+        asof = row.get(f"{col}_as_of")
+        stale = bool(row.get(f"{col}_stale"))
+        title = (f"as of {asof}" if asof else "as-of date unavailable")
+        if stale:
+            title += " - older than this basket's freshness window"
+            inner += '<sup class="stale-mark">&dagger;</sup>'
+        td_cls = ' class="sb-stale"' if stale else ""
+        return f'<td{td_cls} title="{title}">{inner}</td>'
 
     COLS = ["gdp_actual", "gdp_forecast", "inflation", "unemployment",
             "current_account", "govt_debt", "policy_rate", "stock_ytd"]
@@ -366,7 +381,7 @@ def country_snapshot_html(sb):
         if country not in sb.index:
             continue
         row = sb.loc[country]
-        cells = "".join(_cell(row.get(c), c) for c in COLS)
+        cells = "".join(_cell(row, c) for c in COLS)
         rows_html += f'<tr><td class="sb-cn">{country}</td>{cells}</tr>\n'
 
     if not rows_html:
@@ -388,6 +403,7 @@ def country_snapshot_html(sb):
         f'<th>Economy</th>{hdr}</tr></thead>'
         f'<tbody>{rows_html}</tbody></table>'
         f'<p class="sb-note">{gdp_count} of {len(COUNTRIES)} economies have full data this month.{na_note}'
+        f' A <sup class="stale-mark">&dagger;</sup> marks a figure older than this basket&rsquo;s freshness window; N/A means not reported.'
         f' Sources: FRED (US) &middot; OECD SDMX (Europe, Japan, Canada, Australia) &middot; IMF WEO (India, Brazil, China).</p>'
         f'</div>'
     )

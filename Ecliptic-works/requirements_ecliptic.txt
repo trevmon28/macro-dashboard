@@ -1,0 +1,6 @@
+duka
+ib_insync
+pyarrow
+scipy
+scikit-learn
+pyyaml

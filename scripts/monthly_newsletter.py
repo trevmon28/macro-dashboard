@@ -112,6 +112,7 @@ body { margin:0; padding:0; background:#f3f4f6; font-family:Georgia,serif; color
 .sb-note { font-size:11px; color:#94a3b8; margin:8px 0 0; line-height:1.5; }
 .sb .sb-stale { opacity:0.5; }
 .sb .stale-mark { color:#b45309; font-size:9px; margin-left:1px; }
+.sb-h { font-family:Georgia,serif; font-size:15px; font-weight:700; color:#0f172a; margin:20px 0 6px; padding-bottom:3px; border-bottom:1px solid #e5e7eb; }
 """
 
 
@@ -375,36 +376,46 @@ def country_snapshot_html(sb):
             "current_account", "govt_debt", "policy_rate", "stock_ytd"]
     HDRS = ["GDP %<br>Actual", "GDP %<br>Forecast", "CPI %", "Unemp %",
             "Curr Acct<br>% GDP", "Govt Debt<br>% GDP", "Policy<br>Rate %", "Stock<br>YTD %"]
+    hdr = "".join(f"<th>{h}</th>" for h in HDRS)
 
-    rows_html = ""
-    for country in COUNTRIES:
-        if country not in sb.index:
-            continue
-        row = sb.loc[country]
-        cells = "".join(_cell(row, c) for c in COLS)
-        rows_html += f'<tr><td class="sb-cn">{country}</td>{cells}</tr>\n'
+    def _basket_table(part):
+        rows_html = ""
+        for country, row in part.iterrows():
+            cells = "".join(_cell(row, c) for c in COLS)
+            rows_html += f'<tr><td class="sb-cn">{country}</td>{cells}</tr>\n'
+        if not rows_html:
+            return ""
+        return (f'<table class="sb"><thead><tr><th>Economy</th>{hdr}</tr></thead>'
+                f'<tbody>{rows_html}</tbody></table>')
 
-    if not rows_html:
+    # One titled table per basket (specs/006). Fall back to a single table when
+    # the scoreboard predates the basket column (e.g. dashboard-scraped data).
+    BASKET_ORDER = [("Major", "Major Economies"),
+                    ("Emerging Markets", "Emerging Markets"),
+                    ("Developing", "Developing &amp; Frontier")]
+    if "basket" in sb.columns:
+        sections = ""
+        for key, label in BASKET_ORDER:
+            part = sb[sb["basket"] == key]
+            if part.empty:
+                continue
+            table = _basket_table(part)
+            if table:
+                sections += f'<h3 class="sb-h">{label}</h3>{table}'
+    else:
+        sections = _basket_table(sb.loc[[c for c in COUNTRIES if c in sb.index]])
+    if not sections:
         return ""
 
-    hdr = "".join(f"<th>{h}</th>" for h in HDRS)
     gdp_count = int(sb["gdp_actual"].notna().sum()) if "gdp_actual" in sb.columns else 0
-    na_countries = [c for c in COUNTRIES if c in sb.index and pd.isna(sb.loc[c].get("gdp_actual", float("nan")))]
-    na_note = ""
-    if na_countries:
-        na_note = (
-            f" <strong>{', '.join(na_countries)}</strong> show partial data this month — "
-            "their macro statistics come from IMF WEO or OECD, which publish quarterly "
-            "or semi-annually rather than monthly."
-        )
+    total = len(sb)
 
     return (
-        f'<div class="sb-wrap"><table class="sb"><thead><tr>'
-        f'<th>Economy</th>{hdr}</tr></thead>'
-        f'<tbody>{rows_html}</tbody></table>'
-        f'<p class="sb-note">{gdp_count} of {len(COUNTRIES)} economies have full data this month.{na_note}'
-        f' A <sup class="stale-mark">&dagger;</sup> marks a figure older than this basket&rsquo;s freshness window; N/A means not reported.'
-        f' Sources: FRED (US) &middot; OECD SDMX (Europe, Japan, Canada, Australia) &middot; IMF WEO (India, Brazil, China).</p>'
+        f'<div class="sb-wrap">{sections}'
+        f'<p class="sb-note">{gdp_count} of {total} economies have full GDP data this issue.'
+        f' A <sup class="stale-mark">&dagger;</sup> marks a figure older than that basket&rsquo;s freshness window'
+        f' (windows widen for Emerging Markets and Developing, which report on a longer lag); N/A means not reported.'
+        f' Sources: FRED &middot; OECD SDMX &middot; IMF WEO.</p>'
         f'</div>'
     )
 
@@ -937,13 +948,17 @@ def render_html(snap, ind, sb, issue_number, issue_date):
     ]
     tagline = "".join(tagline_items)
 
-    # Country in focus (rotates through all 12)
+    # Narrative sections stay scoped to the Major basket so adding EM/Developing
+    # rows to the scoreboard doesn't silently reshape the existing prose (specs/006).
+    sb_major = sb[sb["basket"] == "Major"] if "basket" in sb.columns else sb
+
+    # Country in focus (rotates through the 12 majors)
     focus_country = COUNTRIES[(issue_number - 1) % 12]
-    focus_row = sb.loc[focus_country] if focus_country in sb.index else pd.Series(dtype=float)
+    focus_row = sb_major.loc[focus_country] if focus_country in sb_major.index else pd.Series(dtype=float)
     focus_text = country_in_focus_text(focus_country, focus_row)
 
-    sb_html    = country_snapshot_html(sb)
-    sb_summary = scoreboard_summary_text(sb)
+    sb_html    = country_snapshot_html(sb)          # full table, all baskets
+    sb_summary = scoreboard_summary_text(sb_major)  # narrative, Major only
 
     focus_block = (
         f"""<div class="sec">
@@ -976,7 +991,7 @@ def render_html(snap, ind, sb, issue_number, issue_date):
   <div class="sec">
     <h2>The World This Week</h2>
     <p class="sub">Global growth, inflation, and central bank divergence</p>
-    {global_picture_text(snap, sb)}
+    {global_picture_text(snap, sb_major)}
   </div>
 
   <div class="sec">

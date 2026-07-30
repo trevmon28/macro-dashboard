@@ -81,10 +81,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] [P] Extend the scoreboard-building loop to also iterate `DEVELOPING_COUNTRIES`, tagging `basket="Developing"` — same code path as T012, different list
-- [ ] T019 [US2] [P] Add the "Developing Economies" table section to `docs/index.html` (same mechanism as T015)
-- [ ] T020 [US2] [P] Add the "Developing Economies" section to the newsletter template (same mechanism as T016)
-- [ ] T021 [US2] Validate SC-003 (≥6 Developing countries) — expect a higher proportion of `stale`/`N/A` cells than EM or Major; confirm this renders correctly rather than looking broken (spec.md US2 Acceptance Scenario 2)
+- [x] T018 [US2] [P] Extended the scoreboard-building loop in `notebooks/03_model.ipynb` to also iterate `DEVELOPING_COUNTRIES`, tagging `basket="Developing"` — same code path as T012. IMF data was already plumbed in the Phase 4 pass (`WEO_AREAS` + `IMF_LABEL_TO_DISPLAY` include the Developing areas), so this was a one-line addition.
+- [x] T019 [US2] [P] No render change needed — `notebooks/04_render.ipynb` cell 9 was built basket-generic in Phase 4 (`BASKET_ORDER` already includes `Developing`), so the "Developing & Frontier" table appears automatically once the rows exist.
+- [x] T020 [US2] [P] Same — `scripts/monthly_newsletter.py` `country_snapshot_html` is basket-generic; the Developing section renders automatically.
+- [x] T021 [US2] Validated SC-003 (6 Developing countries) end-to-end against live IMF WEO data: all 6 populated (Nigeria CPI 16.0%, Egypt 13.2%, Vietnam GDP 8.0%, etc.); dashboard + newsletter each render **3 basket tables / 234 cells / 0 blank**. As expected, Developing carries more staleness daggers (annual IMF data against the wider Developing windows) — renders cleanly, not broken.
 
 **Checkpoint**: All three user stories independently functional — three-basket scoreboard with consistent staleness treatment.
 

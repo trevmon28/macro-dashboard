@@ -40,9 +40,9 @@ Each notebook is executed by `papermill`, which injects `run_date` (the UTC date
 |--------|---------|-------------------|
 | FRED (St. Louis Fed) | `fredapi` | GDP growth, CPI, PCE, Fed funds rate, 2y/10y/3m Treasury yields, unemployment, M2, HY credit spread (ICE BofA) |
 | World Bank | `wbdata` | GDP growth, CPI inflation, current account % GDP, govt debt % GDP, unemployment — G20 economies |
-| IMF World Economic Outlook | `imf-reader` | Real GDP growth, CPI, unemployment, current account, govt debt — major economies + forecasts |
-| yfinance | `yfinance` | YTD equity index performance — 12 major indices (S&P 500, DAX, Nikkei, FTSE, etc.) |
-| FRED (policy rates) | `fredapi` | Central bank policy rates — 12 economies via OECD/ECB/Fed series |
+| IMF World Economic Outlook | `imf-reader` | Real GDP growth, CPI, unemployment, current account, govt debt — Major + Emerging Markets + Developing economies (24 areas; see specs/006) |
+| yfinance | `yfinance` | YTD equity index performance — 12 major indices (S&P 500, DAX, Nikkei, FTSE, etc.); EM/Developing baskets have no equity coverage (render N/A) |
+| FRED (policy rates) | `fredapi` | Central bank policy rates — 12 major economies via OECD/ECB/Fed series; EM/Developing have no policy-rate coverage (render N/A) |
 
 **FRED API Key:** Required. Set via:
 - GitHub Actions: `secrets.FRED_API_KEY`
@@ -70,7 +70,7 @@ Each notebook is executed by `papermill`, which injects `run_date` (the UTC date
 
 **Tabs:**
 1. **Macro Signals** — yield curve time series, recession probability history, inflation regime bar chart, risk gauge, key metrics card
-2. **Country Scoreboard** — 12 major economies with GDP, inflation, unemployment, current account, govt debt, policy rate, stock YTD
+2. **Country Scoreboard** — three baskets (Major Economies · Emerging Markets · Developing & Frontier — 26 economies total) with GDP, inflation, unemployment, current account, govt debt, policy rate, stock YTD. Each figure carries an as-of date and a per-basket staleness indicator; missing data renders as an explicit N/A. See `specs/006-em-developing-baskets/` for the basket definitions, staleness thresholds, and rendering.
 
 **Header:** `"As of YYYY-MM-DD · Powered by FRED · World Bank · IMF WEO"` — date is the `run_date` injected by papermill (the actual pipeline run date, not a data timestamp).
 

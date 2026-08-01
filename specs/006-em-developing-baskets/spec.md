@@ -107,7 +107,7 @@ A reader looking at any basket (existing major-economy, new EM, or new developin
 - **SC-001**: A reader can identify, for any metric in any basket, whether the figure is current or lagging without leaving the dashboard or newsletter page (no external lookup needed).
 - **SC-002**: 100% of rendered metric cells across all three baskets carry either a value with a visible as-of/staleness indicator, or an explicit "not available" state — zero blank cells.
 - **SC-003**: The Emerging Markets basket covers at least 8 countries and the Developing Economies basket covers at least 6 countries in the first release.
-- **SC-004**: Adding the two new baskets does not change the appearance or content of the existing major-economy basket's data values — only adds the as-of/staleness display to it (verified by diffing scoreboard values pre/post feature for the original 12 countries).
+- **SC-004**: Adding the two new baskets does not *accidentally* change the existing major-economy basket's data values — only adds the as-of/staleness display and the `basket` label to it. **Amended (2026-07-31):** the one intended exception is the T026 vintage-cap fix (see `tasks.md` T026), which deliberately corrects Major values that previously showed a future IMF forecast (e.g. a 2031 projection) as the "actual". Verified by rebuilding the Major basket old-code vs. new-code on the same panel: all 50 value diffs were T026 corrections (every changed cell's pre-fix vintage was future-dated, 2030/2031); zero unexplained changes; the original value columns are all still present (purely additive schema otherwise).
 
 ---
 

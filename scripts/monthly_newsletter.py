@@ -50,12 +50,12 @@ REGIME_LABELS = {-1: "Deflationary", 0: "Normal", 1: "Elevated", 2: "High Inflat
 
 CSS = """
 body { margin:0; padding:0; background:#f3f4f6; font-family:Georgia,serif; color:#1f2937; }
-.wrapper { max-width:620px; margin:32px auto; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.wrapper { max-width:720px; margin:32px auto; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.08); }
 .hdr { background:#0f172a; color:#f8fafc; padding:36px 32px 24px; }
-.hdr h1 { margin:0 0 4px; font-size:22px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; }
+.hdr h1 { margin:0 0 4px; font-size:22px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; color:#f8fafc; }
 .hdr .issue { margin:0 0 12px; font-size:13px; color:#94a3b8; letter-spacing:.05em; }
-.hdr .tagline { margin:0; font-size:13px; color:#94a3b8; line-height:1.6; }
-.hdr .tagline span { display:inline-block; margin-right:16px; }
+.hdr .tagline { margin:0; font-size:13px; color:#cbd5e1; line-height:1.6; }
+.hdr .tagline span { display:inline-block; margin-right:16px; color:#cbd5e1; }
 .hdr .tagline strong { color:#f8fafc; }
 .sec { padding:28px 32px; border-bottom:1px solid #e5e7eb; }
 .sec:last-child { border-bottom:none; }
@@ -86,24 +86,26 @@ body { margin:0; padding:0; background:#f3f4f6; font-family:Georgia,serif; color
 .links a:hover { text-decoration:underline; }
 .footer { background:#f8fafc; padding:20px 32px; font-size:12px; color:#9ca3af; line-height:1.6; text-align:center; }
 .footer a { color:#9ca3af; }
-.expert-panel { display:flex; flex-direction:column; gap:16px; }
-.expert-card { border:1px solid #e2e8f0; border-radius:8px; padding:18px 20px; background:#fafafa; }
+.expert-panel { display:block; }
+.expert-card { border:1px solid #e2e8f0; border-radius:8px; padding:18px 20px; background:#fafafa; margin-bottom:16px; }
+.expert-card:last-child { margin-bottom:0; }
 .expert-card .expert-header { margin-bottom:10px; }
 .expert-card .expert-name { font-weight:700; font-size:14px; color:#0f172a; display:block; }
 .expert-card .expert-role { font-size:11px; color:#64748b; letter-spacing:.04em; text-transform:uppercase; display:block; margin-top:2px; }
 .expert-card .verdict { font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:#0284c7; margin-bottom:8px; display:block; }
 .expert-card p { margin:0; font-size:14px; line-height:1.7; color:#374151; font-style:italic; }
-.voices { display:flex; flex-direction:column; gap:14px; }
-.voice-card { padding:16px 20px 14px; border-left:3px solid #0f172a; background:#f8fafc; }
-.voice-card blockquote { margin:0 0 10px; font-size:15px; line-height:1.75; color:#1f2937; font-style:italic; }
+.voices { display:block; }
+.voice-card { padding:16px 20px 14px; border-left:3px solid #0f172a; background:#f8fafc; margin-bottom:14px; }
+.voice-card:last-child { margin-bottom:0; }
+.voice-card .voice-quote { margin:0 0 10px; font-size:15px; line-height:1.75; color:#1f2937; font-style:italic; }
 .voice-card .attr { font-size:12px; color:#64748b; line-height:1.5; }
 .voice-card .attr strong { color:#0f172a; font-style:normal; display:block; margin-bottom:1px; }
 .voice-card .attr a { color:#0284c7; font-size:11px; text-decoration:none; }
 .voice-card .attr a:hover { text-decoration:underline; }
 .sb-wrap { overflow-x:auto; margin:4px 0; }
 .sb { width:100%; border-collapse:collapse; font-size:12px; }
-.sb th { text-align:center; padding:7px 8px; font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:#6b7280; border-bottom:2px solid #e5e7eb; background:#f8fafc; line-height:1.4; }
-.sb td { padding:6px 8px; text-align:center; border-bottom:1px solid #f1f5f9; font-size:12px; font-family:'Courier New',monospace; }
+.sb th { text-align:center; padding:7px 6px; font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:#6b7280; border-bottom:2px solid #e5e7eb; background:#f8fafc; line-height:1.4; white-space:nowrap; }
+.sb td { padding:6px 6px; text-align:center; border-bottom:1px solid #f1f5f9; font-size:12px; font-family:'Courier New',monospace; white-space:nowrap; }
 .sb .sb-cn { text-align:left; font-weight:600; font-size:12px; color:#0f172a; white-space:nowrap; font-family:Georgia,serif; padding-left:4px; }
 .sb .sb-na { color:#cbd5e1; font-family:'Courier New',monospace; }
 .sb-g { background:#d1fae5; color:#065f46; border-radius:3px; padding:1px 5px; display:inline-block; }
@@ -316,8 +318,11 @@ def global_picture_text(snap, sb):
     return f"<p>{growth_para}</p><p>{divergence_para}</p><p>{inf_note}</p>"
 
 
-def country_snapshot_html(sb):
-    """Full 8-column color-coded scoreboard matching the dashboard."""
+def country_snapshot_html(sb, email_mode=False):
+    """8-column scoreboard. The web archive gets the full 3-basket, color-coded
+    version. email_mode renders only the Major basket, uncolored, with a link out
+    to the dashboard for the rest — because Buttondown inlines all CSS on send,
+    which tripled the message past Gmail's ~102KB clip limit and truncated the tail."""
 
     THRESHOLDS = {
         "gdp_actual":      [(2.0, "g"), (0.5, "a"), (None, "r")],
@@ -351,9 +356,12 @@ def country_snapshot_html(sb):
         # date), stale value (muted + dagger), or explicit N/A. Falls back
         # gracefully when as_of/stale columns are absent (e.g. dashboard-scraped
         # scoreboard, which has no vintage metadata).
+        # No title= tooltips here: they never render in email (no hover) and, once
+        # Buttondown inlines the CSS, every extra byte counts toward Gmail's ~102KB
+        # clip limit. Staleness is still shown via the dagger superscript.
         v = row.get(col)
         if v is None or (isinstance(v, float) and pd.isna(v)):
-            return '<td class="sb-na" title="not reported">N/A</td>'
+            return '<td class="sb-na">N/A</td>'
         fv = float(v)
         cls = _color(fv, col)
         if col in ("gdp_actual", "gdp_forecast", "current_account", "stock_ytd"):
@@ -362,15 +370,17 @@ def country_snapshot_html(sb):
             txt = f"{int(round(fv))}"
         else:
             txt = f"{fv:.2f}" if col == "policy_rate" else f"{fv:.1f}"
-        inner = f'<span class="sb-{cls}">{txt}</span>' if cls else txt
-        asof = row.get(f"{col}_as_of")
+        # email_mode drops the colored pill spans (one inline style per span, x200
+        # cells) — the single biggest contributor to the inlined-size blowup.
+        if email_mode or not cls:
+            inner = txt
+        else:
+            inner = f'<span class="sb-{cls}">{txt}</span>'
         stale = bool(row.get(f"{col}_stale"))
-        title = (f"as of {asof}" if asof else "as-of date unavailable")
         if stale:
-            title += " - older than this basket's freshness window"
             inner += '<sup class="stale-mark">&dagger;</sup>'
         td_cls = ' class="sb-stale"' if stale else ""
-        return f'<td{td_cls} title="{title}">{inner}</td>'
+        return f'<td{td_cls}>{inner}</td>'
 
     COLS = ["gdp_actual", "gdp_forecast", "inflation", "unemployment",
             "current_account", "govt_debt", "policy_rate", "stock_ytd"]
@@ -393,9 +403,12 @@ def country_snapshot_html(sb):
     BASKET_ORDER = [("Major", "Major Economies"),
                     ("Emerging Markets", "Emerging Markets"),
                     ("Developing", "Developing &amp; Frontier")]
+    # Email carries only the Major basket (keeps the message under Gmail's clip
+    # limit); the web archive shows all three.
+    baskets = [("Major", "Major Economies")] if email_mode else BASKET_ORDER
     if "basket" in sb.columns:
         sections = ""
-        for key, label in BASKET_ORDER:
+        for key, label in baskets:
             part = sb[sb["basket"] == key]
             if part.empty:
                 continue
@@ -406,6 +419,20 @@ def country_snapshot_html(sb):
         sections = _basket_table(sb.loc[[c for c in COUNTRIES if c in sb.index]])
     if not sections:
         return ""
+
+    if email_mode:
+        has_other = "basket" in sb.columns and (sb["basket"] != "Major").any()
+        note = (
+            '<p class="sb-note">A <sup class="stale-mark">&dagger;</sup> marks a figure older than'
+            ' its freshness window; N/A means not reported. Sources: FRED &middot; OECD SDMX &middot; IMF WEO.'
+        )
+        if has_other:
+            note += (
+                f' &nbsp;<a href="{DASHBOARD_URL}"><strong>Emerging Markets &amp; Developing'
+                f' economies &#8594; see the full color-coded scoreboard on the live dashboard.</strong></a>'
+            )
+        note += "</p>"
+        return f'<div class="sb-wrap">{sections}{note}</div>'
 
     gdp_count = int(sb["gdp_actual"].notna().sum()) if "gdp_actual" in sb.columns else 0
     total = len(sb)
@@ -595,10 +622,26 @@ def inflation_text(snap):
             "central banks to fight. It also tends to make debt burdens feel heavier."
         )
     elif code == 0:
+        if z >= 0:
+            posture = (
+                f"Right now it is actually sitting <strong>modestly above</strong> that 20-year "
+                f"average — about <strong>{z:+.2f} standard deviations</strong> — so &ldquo;normal&rdquo; "
+                f"here means normal <em>by recent historical standards, not back at the Fed&rsquo;s 2% target</em>."
+            )
+        else:
+            posture = (
+                f"Right now it is running <strong>a touch below</strong> that 20-year average "
+                f"— about <strong>{z:+.2f} standard deviations</strong> — comfortably inside the normal band."
+            )
         what_it_means = (
-            "Price growth is in its normal historical range — not too hot, not too cold. "
-            "This gives the Federal Reserve room to adjust rates in either direction if the "
-            "economy needs it, which is generally a stable backdrop for markets."
+            "&ldquo;Normal&rdquo; here is a specific, model-defined thing: CPI is within half a standard "
+            "deviation of its own <strong>20-year rolling average</strong>. One caveat that matters for "
+            "reading this: the trailing 20-year window now includes the 2021&ndash;2023 inflation surge, "
+            "which pulled that average up and widened the range the model treats as &ldquo;normal.&rdquo; "
+            + posture +
+            " The practical takeaway: price growth is no longer alarming and gives the Fed room to move "
+            "rates in either direction, but it has not fully returned to the 2% goal &mdash; a stable "
+            "backdrop, not an all-clear."
         )
     elif code == 1:
         what_it_means = (
@@ -896,6 +939,27 @@ VOICES = [
         "context": "On trade fragmentation and EU agreements with Latin America and India — June 2026",
         "source": "https://www.investing.com/news/economy-news/outgoing-imf-chief-economist-sees-risks-shifting-trade-ties-and-continued-uncertainty-on-global-outlook-4763560",
     },
+    {
+        "quote": (
+            "Barring a miracle, the 2020s will prove to be what their ominous opening "
+            "foreshadowed: a lost decade — not just for a couple of outliers, but for "
+            "dozens of developing economies."
+        ),
+        "name": "Indermit Gill",
+        "title": "Chief Economist & Senior VP, World Bank Group",
+        "context": "Foreword, Global Economic Prospects — June 12, 2026",
+        "source": "https://www.worldbank.org/en/publication/global-economic-prospects",
+    },
+    {
+        "quote": (
+            "The board is determined to ensure that expectations of higher inflation do "
+            "not become embedded in price and wage setting decisions."
+        ),
+        "name": "Michele Bullock",
+        "title": "Governor, Reserve Bank of Australia",
+        "context": "Post-meeting statement, RBA rates decision — August 11, 2026",
+        "source": "https://www.centralbanking.com/central-banks/monetary-policy/monetary-policy-decisions/7976613/rba-remains-on-hold-and-says-inflation-still-too-high",
+    },
 ]
 
 
@@ -904,7 +968,7 @@ def voices_html():
     for v in VOICES:
         cards += (
             f'<div class="voice-card">'
-            f'<blockquote>&#8220;{v["quote"]}&#8221;</blockquote>'
+            f'<div class="voice-quote">&#8220;{v["quote"]}&#8221;</div>'
             f'<div class="attr">'
             f'<strong>{v["name"]} &nbsp;&middot;&nbsp; {v["title"]}</strong>'
             f'<a href="{v["source"]}">{v["context"]}</a>'
@@ -918,7 +982,7 @@ def voices_html():
 # HTML renderer
 # ---------------------------------------------------------------------------
 
-def render_html(snap, ind, sb, issue_number, issue_date):
+def render_html(snap, ind, sb, issue_number, issue_date, email_mode=False):
     as_of = snap.get("as_of", str(date.today()))
     date_str = issue_date.strftime("%B %d, %Y")
 
@@ -957,7 +1021,7 @@ def render_html(snap, ind, sb, issue_number, issue_date):
     focus_row = sb_major.loc[focus_country] if focus_country in sb_major.index else pd.Series(dtype=float)
     focus_text = country_in_focus_text(focus_country, focus_row)
 
-    sb_html    = country_snapshot_html(sb)          # full table, all baskets
+    sb_html    = country_snapshot_html(sb, email_mode=email_mode)  # full 3 baskets (web) or Major-only (email)
     sb_summary = scoreboard_summary_text(sb_major)  # narrative, Major only
 
     focus_block = (
@@ -1167,7 +1231,8 @@ def main():
         existing = [p for p in NL_DIR.glob("*.html") if p.name not in ("index.html", f"{ymd}.html")]
         issue_number = len(existing) + 1
 
-    html = render_html(snap, ind, sb, issue_number, issue_date)
+    # Full rich version (all 3 baskets, color) for the web archive.
+    html = render_html(snap, ind, sb, issue_number, issue_date, email_mode=False)
 
     out_path = NL_DIR / f"{ymd}.html"
     out_path.write_text(html, encoding="utf-8")
@@ -1181,8 +1246,12 @@ def main():
     print(f"Index updated: {NL_DIR / 'index.html'}")
 
     if args.send:
+        # Email-optimised version (Major basket only, uncolored) so Buttondown's
+        # inlined CSS stays under Gmail's ~102KB clip limit. The archive keeps the
+        # full version above.
+        email_html = render_html(snap, ind, sb, issue_number, issue_date, email_mode=True)
         subject = f"Global Macro Pulse — {date_str}"
-        send_email(subject, html)
+        send_email(subject, email_html)
 
 
 if __name__ == "__main__":

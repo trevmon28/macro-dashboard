@@ -52,7 +52,9 @@ jobs:
         run: python scripts/build_paper.py
 
       - name: Generate weekly newsletter
-        run: python scripts/monthly_newsletter.py
+        env:
+          BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}
+        run: python scripts/monthly_newsletter.py --send
 
       - name: Commit outputs and docs
         run: |

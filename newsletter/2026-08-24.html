@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Macro Pulse — Issue #9 · August 24, 2026</title>
+<style>
+body { margin:0; padding:0; background:#f3f4f6; font-family:Georgia,serif; color:#1f2937; }
+.wrapper { max-width:720px; margin:32px auto; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.hdr { background:#0f172a; color:#f8fafc; padding:36px 32px 24px; }
+.hdr h1 { margin:0 0 4px; font-size:22px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; color:#f8fafc; }
+.hdr .issue { margin:0 0 12px; font-size:13px; color:#94a3b8; letter-spacing:.05em; }
+.hdr .tagline { margin:0; font-size:13px; color:#cbd5e1; line-height:1.6; }
+.hdr .tagline span { display:inline-block; margin-right:16px; color:#cbd5e1; }
+.hdr .tagline strong { color:#f8fafc; }
+.sec { padding:28px 32px; border-bottom:1px solid #e5e7eb; }
+.sec:last-child { border-bottom:none; }
+.sec h2 { margin:0 0 6px; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6b7280; }
+.sec .sub { margin:0 0 16px; font-size:12px; color:#94a3b8; font-style:italic; }
+.sec p { margin:0 0 12px; font-size:15px; line-height:1.7; }
+.sec p:last-child { margin-bottom:0; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+.card { background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px 14px; }
+.card .lbl { font-size:11px; color:#64748b; letter-spacing:.06em; text-transform:uppercase; margin-bottom:4px; }
+.card .val { font-size:20px; font-weight:700; color:#0f172a; font-family:'Courier New',monospace; }
+.card .delta { font-size:12px; color:#64748b; margin-top:2px; }
+.sb-table { width:100%; border-collapse:collapse; font-size:13px; margin:12px 0; }
+.sb-table th { text-align:left; padding:6px 8px; font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:#6b7280; border-bottom:2px solid #e5e7eb; }
+.sb-table td { padding:7px 8px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+.sb-table tr:last-child td { border-bottom:none; }
+.sb-table .flag { font-size:11px; color:#94a3b8; }
+.pill { display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px; font-weight:600; }
+.pill-g { background:#dcfce7; color:#15803d; }
+.pill-r { background:#fee2e2; color:#b91c1c; }
+.pill-y { background:#fef9c3; color:#854d0e; }
+.spotlight { background:#f0f9ff; border-left:4px solid #0284c7; padding:16px 20px; border-radius:0 6px 6px 0; }
+.us-box { background:#fafaf9; border:1px solid #e2e8f0; border-radius:8px; padding:20px 24px; margin-bottom:4px; }
+.movers ul { margin:8px 0 0; padding-left:20px; }
+.movers li { font-size:15px; line-height:1.7; margin-bottom:6px; }
+.links { display:flex; gap:16px; flex-wrap:wrap; }
+.links a { color:#0284c7; text-decoration:none; font-size:14px; }
+.links a:hover { text-decoration:underline; }
+.footer { background:#f8fafc; padding:20px 32px; font-size:12px; color:#9ca3af; line-height:1.6; text-align:center; }
+.footer a { color:#9ca3af; }
+.expert-panel { display:block; }
+.expert-card { border:1px solid #e2e8f0; border-radius:8px; padding:18px 20px; background:#fafafa; margin-bottom:16px; }
+.expert-card:last-child { margin-bottom:0; }
+.expert-card .expert-header { margin-bottom:10px; }
+.expert-card .expert-name { font-weight:700; font-size:14px; color:#0f172a; display:block; }
+.expert-card .expert-role { font-size:11px; color:#64748b; letter-spacing:.04em; text-transform:uppercase; display:block; margin-top:2px; }
+.expert-card .verdict { font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:#0284c7; margin-bottom:8px; display:block; }
+.expert-card p { margin:0; font-size:14px; line-height:1.7; color:#374151; font-style:italic; }
+.voices { display:block; }
+.voice-card { padding:16px 20px 14px; border-left:3px solid #0f172a; background:#f8fafc; margin-bottom:14px; }
+.voice-card:last-child { margin-bottom:0; }
+.voice-card .voice-quote { margin:0 0 10px; font-size:15px; line-height:1.75; color:#1f2937; font-style:italic; }
+.voice-card .attr { font-size:12px; color:#64748b; line-height:1.5; }
+.voice-card .attr strong { color:#0f172a; font-style:normal; display:block; margin-bottom:1px; }
+.voice-card .attr a { color:#0284c7; font-size:11px; text-decoration:none; }
+.voice-card .attr a:hover { text-decoration:underline; }
+.sb-wrap { overflow-x:auto; margin:4px 0; }
+.sb { width:100%; border-collapse:collapse; font-size:12px; }
+.sb th { text-align:center; padding:7px 6px; font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:#6b7280; border-bottom:2px solid #e5e7eb; background:#f8fafc; line-height:1.4; white-space:nowrap; }
+.sb td { padding:6px 6px; text-align:center; border-bottom:1px solid #f1f5f9; font-size:12px; font-family:'Courier New',monospace; white-space:nowrap; }
+.sb .sb-cn { text-align:left; font-weight:600; font-size:12px; color:#0f172a; white-space:nowrap; font-family:Georgia,serif; padding-left:4px; }
+.sb .sb-na { color:#cbd5e1; font-family:'Courier New',monospace; }
+.sb-g { background:#d1fae5; color:#065f46; border-radius:3px; padding:1px 5px; display:inline-block; }
+.sb-a { background:#fef3c7; color:#78350f; border-radius:3px; padding:1px 5px; display:inline-block; }
+.sb-r { background:#fee2e2; color:#991b1b; border-radius:3px; padding:1px 5px; display:inline-block; }
+.sb-note { font-size:11px; color:#94a3b8; margin:8px 0 0; line-height:1.5; }
+.sb .sb-stale { opacity:0.5; }
+.sb .stale-mark { color:#b45309; font-size:9px; margin-left:1px; }
+.sb-h { font-family:Georgia,serif; font-size:15px; font-weight:700; color:#0f172a; margin:20px 0 6px; padding-bottom:3px; border-bottom:1px solid #e5e7eb; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="hdr">
+    <h1>Global Macro Pulse</h1>
+    <p class="issue">Issue #9 &nbsp;·&nbsp; August 24, 2026 &nbsp;·&nbsp; Data as of 2026-08-24</p>
+    <p class="tagline"><span>Global growth: <strong>3.1%</strong></span><span>US recession risk: <strong>19.9%</strong></span><span>US inflation: <strong>Normal</strong></span><span>Financial conditions: <strong>Risk-On</strong></span></p>
+  </div>
+
+  <div class="sec">
+    <h2>The World This Week</h2>
+    <p class="sub">Global growth, inflation, and central bank divergence</p>
+    <p>Global growth is holding up, but not accelerating. Our GDP-weighted gauge reads <strong>3.1%</strong> — the world is expanding, just not at the kind of pace that gets investors excited. The expansion is real, but it's modest.</p><p>The headline number masks significant divergence underneath. <strong>India</strong> leads the pack at <strong>7.6%</strong> growth, while <strong>Japan</strong> brings up the rear at <strong>0.7%</strong>. A 6.9-percentage-point gap between the fastest and slowest major economy is wide by historical standards — a sign that this cycle is playing out very differently depending on where you are in the world.</p><p>Inflation is a mixed picture globally — some economies have it under control, others are still working through it. That divergence is one reason central bank paths look so different right now.</p>
+  </div>
+
+  <div class="sec">
+    <h2>Economy Snapshot</h2>
+    <p class="sub">12 major economies — ~80% of global GDP</p>
+    <p><strong>India</strong> leads the growth table at <strong>+7.6%</strong>, while <strong>Japan</strong> is at the bottom with <strong>+0.7%</strong> — a 6.9-point spread that reflects a deeply uneven global cycle. Inflation is still running above 3.5% in 3 economies (India, Brazil, Australia), keeping their central banks cautious on the path to rate cuts. Equity markets are split: <strong>South Korea</strong> leads year-to-date at <strong>+55.1%</strong>, while <strong>India</strong> is the laggard at <strong>-9.2%</strong>.</p>
+    <div class="sb-wrap"><h3 class="sb-h">Major Economies</h3><table class="sb"><thead><tr><th>Economy</th><th>GDP %<br>Actual</th><th>GDP %<br>Forecast</th><th>CPI %</th><th>Unemp %</th><th>Curr Acct<br>% GDP</th><th>Govt Debt<br>% GDP</th><th>Policy<br>Rate %</th><th>Stock<br>YTD %</th></tr></thead><tbody><tr><td class="sb-cn">United States</td><td class="sb-stale"><span class="sb-g">+2.3</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">+2.3</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">3.2</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">4.4</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">-3.7</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">126</span><sup class="stale-mark">&dagger;</sup></td><td>3.63</td><td><span class="sb-g">+11.9</span></td></tr>
+<tr><td class="sb-cn">China</td><td class="sb-stale"><span class="sb-g">+5.0</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">+4.4</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">1.2</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">5.1</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">+3.5</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">107</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale">2.90<sup class="stale-mark">&dagger;</sup></td><td><span class="sb-a">-4.1</span></td></tr>
+<tr><td class="sb-cn">Germany</td><td class="sb-stale"><span class="sb-a">+0.8</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">+0.8</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">2.7</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">3.9</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">+3.9</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">65</span><sup class="stale-mark">&dagger;</sup></td><td>2.25</td><td><span class="sb-g">+6.5</span></td></tr>
+<tr><td class="sb-cn">Japan</td><td class="sb-stale"><span class="sb-a">+0.7</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">+0.7</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">2.2</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">2.5</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">+3.8</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">204</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale">0.84<sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+26.5</span></td></tr>
+<tr><td class="sb-cn">United Kingdom</td><td class="sb-stale"><span class="sb-a">+0.8</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">+0.8</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">3.2</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">5.6</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">-3.4</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">104</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale">0.25<sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+8.7</span></td></tr>
+<tr><td class="sb-cn">France</td><td class="sb-stale"><span class="sb-a">+0.9</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">+0.9</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">1.8</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">7.9</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">-0.3</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">118</span><sup class="stale-mark">&dagger;</sup></td><td>2.25</td><td><span class="sb-g">+3.5</span></td></tr>
+<tr><td class="sb-cn">India</td><td class="sb-stale"><span class="sb-g">+7.6</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">+6.5</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">4.7</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">4.9</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">-2.0</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">83</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale">5.50<sup class="stale-mark">&dagger;</sup></td><td><span class="sb-a">-9.2</span></td></tr>
+<tr><td class="sb-cn">Brazil</td><td class="sb-stale"><span class="sb-g">+2.3</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">+1.9</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">4.0</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">6.8</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">-2.7</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">96</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale">14.39<sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+6.2</span></td></tr>
+<tr><td class="sb-cn">Canada</td><td class="sb-stale"><span class="sb-a">+1.5</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">+1.5</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">2.5</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">6.5</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">-0.2</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">111</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale">2.27<sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+14.9</span></td></tr>
+<tr><td class="sb-cn">Australia</td><td class="sb-stale"><span class="sb-g">+2.0</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">+2.0</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">4.0</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">4.2</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">-2.3</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">51</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale">4.35<sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+4.3</span></td></tr>
+<tr><td class="sb-cn">South Korea</td><td class="sb-na">N/A</td><td class="sb-na">N/A</td><td class="sb-na">N/A</td><td class="sb-na">N/A</td><td class="sb-na">N/A</td><td class="sb-na">N/A</td><td class="sb-stale">2.54<sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+55.1</span></td></tr>
+<tr><td class="sb-cn">Italy</td><td class="sb-na">N/A</td><td class="sb-na">N/A</td><td class="sb-na">N/A</td><td class="sb-na">N/A</td><td class="sb-na">N/A</td><td class="sb-na">N/A</td><td>2.25</td><td><span class="sb-g">+16.1</span></td></tr>
+</tbody></table><h3 class="sb-h">Emerging Markets</h3><table class="sb"><thead><tr><th>Economy</th><th>GDP %<br>Actual</th><th>GDP %<br>Forecast</th><th>CPI %</th><th>Unemp %</th><th>Curr Acct<br>% GDP</th><th>Govt Debt<br>% GDP</th><th>Policy<br>Rate %</th><th>Stock<br>YTD %</th></tr></thead><tbody><tr><td class="sb-cn">Mexico</td><td class="sb-stale"><span class="sb-a">+0.6</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-a">+1.6</span></td><td class="sb-stale"><span class="sb-a">3.9</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">2.7</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-a">-0.4</span></td><td><span class="sb-a">63</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+<tr><td class="sb-cn">Indonesia</td><td class="sb-stale"><span class="sb-g">+5.1</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+5.0</span></td><td class="sb-stale"><span class="sb-a">3.0</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">4.8</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-a">-1.1</span></td><td><span class="sb-g">42</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+<tr><td class="sb-cn">Turkey</td><td class="sb-stale"><span class="sb-g">+3.6</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+3.4</span></td><td class="sb-stale"><span class="sb-r">28.6</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">8.3</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-a">-2.8</span></td><td><span class="sb-g">26</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+<tr><td class="sb-cn">South Africa</td><td class="sb-stale"><span class="sb-a">+1.1</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-a">+1.0</span></td><td class="sb-stale"><span class="sb-a">3.9</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">32.5</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-a">-0.9</span></td><td><span class="sb-a">79</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+<tr><td class="sb-cn">Poland</td><td class="sb-stale"><span class="sb-g">+3.6</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+3.3</span></td><td class="sb-stale"><span class="sb-a">3.3</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">3.4</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-a">-1.1</span></td><td><span class="sb-a">66</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+<tr><td class="sb-cn">Thailand</td><td class="sb-stale"><span class="sb-g">+2.4</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-a">+1.5</span></td><td class="sb-stale"><span class="sb-g">0.9</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">1.0</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+0.7</span></td><td><span class="sb-a">67</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+<tr><td class="sb-cn">Saudi Arabia</td><td class="sb-stale"><span class="sb-g">+4.5</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+3.1</span></td><td class="sb-stale"><span class="sb-g">2.3</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">3.5</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-a">-1.6</span></td><td><span class="sb-g">32</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+<tr><td class="sb-cn">Taiwan</td><td class="sb-stale"><span class="sb-g">+8.7</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+5.2</span></td><td class="sb-stale"><span class="sb-g">1.5</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">3.4</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+18.1</span></td><td><span class="sb-g">28</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+</tbody></table><h3 class="sb-h">Developing &amp; Frontier</h3><table class="sb"><thead><tr><th>Economy</th><th>GDP %<br>Actual</th><th>GDP %<br>Forecast</th><th>CPI %</th><th>Unemp %</th><th>Curr Acct<br>% GDP</th><th>Govt Debt<br>% GDP</th><th>Policy<br>Rate %</th><th>Stock<br>YTD %</th></tr></thead><tbody><tr><td class="sb-cn">Nigeria</td><td class="sb-stale"><span class="sb-g">+4.0</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+4.1</span></td><td class="sb-stale"><span class="sb-r">16.0</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-r">22.6</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+5.8</span></td><td><span class="sb-g">32</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+<tr><td class="sb-cn">Vietnam</td><td class="sb-stale"><span class="sb-g">+8.0</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+7.1</span></td><td class="sb-stale"><span class="sb-r">4.9</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-g">2.1</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+5.3</span></td><td><span class="sb-g">30</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+<tr><td class="sb-cn">Bangladesh</td><td class="sb-stale"><span class="sb-g">+3.5</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+4.7</span></td><td class="sb-stale"><span class="sb-r">9.2</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-na">N/A</td><td><span class="sb-a">-0.6</span></td><td><span class="sb-g">42</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+<tr><td class="sb-cn">Kenya</td><td class="sb-stale"><span class="sb-g">+4.9</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+4.5</span></td><td class="sb-stale"><span class="sb-r">5.9</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-na">N/A</td><td><span class="sb-r">-4.1</span></td><td><span class="sb-a">72</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+<tr><td class="sb-cn">Egypt</td><td class="sb-stale"><span class="sb-g">+4.4</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+4.2</span></td><td class="sb-stale"><span class="sb-r">13.2</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">7.4</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-r">-4.2</span></td><td><span class="sb-a">87</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+<tr><td class="sb-cn">Pakistan</td><td class="sb-stale"><span class="sb-g">+3.1</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-g">+3.6</span></td><td class="sb-stale"><span class="sb-r">7.2</span><sup class="stale-mark">&dagger;</sup></td><td class="sb-stale"><span class="sb-a">6.9</span><sup class="stale-mark">&dagger;</sup></td><td><span class="sb-a">-0.4</span></td><td><span class="sb-a">70</span></td><td class="sb-na">N/A</td><td class="sb-na">N/A</td></tr>
+</tbody></table><p class="sb-note">24 of 26 economies have full GDP data this issue. A <sup class="stale-mark">&dagger;</sup> marks a figure older than that basket&rsquo;s freshness window (windows widen for Emerging Markets and Developing, which report on a longer lag); N/A means not reported. Sources: FRED &middot; OECD SDMX &middot; IMF WEO.</p></div>
+  </div>
+
+  <div class="sec">
+    <h2>Country in Focus</h2>
+    <p class="sub">Rotating spotlight — this week: Canada</p>
+    <div class="spotlight">
+      <p style="margin:0;font-size:15px;line-height:1.7"><strong>Canada</strong>: the economy grew at <strong>1.5%</strong> (most recent reading), inflation is running at <strong>2.5%</strong>, unemployment stands at <strong>6.5%</strong>, the central bank's policy rate is <strong>2.27%</strong>, government debt is <strong>111% of GDP</strong>. The local stock market has <strong>gained 14.9%</strong> this year.</p>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>US Spotlight</h2>
+    <p class="sub">A permanent fixture — the US as the world's largest economy and key driver of global financial conditions</p>
+    <div class="us-box">
+      <div class="grid">
+        <div class="card">
+          <div class="lbl">Yield Curve (10y–2y)</div>
+          <div class="val">+0.50%</div>
+          <div class="delta">MoM: +0.030 &nbsp;·&nbsp; <span style="color:#16a34a">Normal</span></div>
+        </div>
+        <div class="card">
+          <div class="lbl">Recession Risk (12m)</div>
+          <div class="val">19.9%</div>
+          <div class="delta">MoM: +0.7pp</div>
+        </div>
+        <div class="card">
+          <div class="lbl">Inflation</div>
+          <div class="val" style="font-size:15px;padding-top:4px">Normal</div>
+          <div class="delta">vs. 20-yr avg: +0.40</div>
+        </div>
+        <div class="card">
+          <div class="lbl">Financial Conditions</div>
+          <div class="val" style="color:#16a34a">+0.34</div>
+          <div class="delta"><strong style="color:#16a34a">Risk-On</strong> &nbsp;·&nbsp; MoM: +0.109</div>
+        </div>
+      </div>
+    </div>
+    <p>Right now the yield curve is <strong>not inverted</strong> — 10-year Treasury yields sit <strong>+0.50%</strong> above 2-year yields, which is the normal, healthy relationship. When this gap turns negative (inversion), it's often a sign that investors expect the economy to slow. The gap between long- and short-term rates <strong>widened by 3 basis points</strong> this week (one basis point = 0.01%) — a positive sign, meaning the curve is moving further from inversion territory.</p>
+    <p>Our recession model puts the odds of a US recession starting within the next 12 months at <strong>19.9%</strong>. To put that in context: moderate — worth watching, but not yet alarming. The model works by looking at the gap between 10-year and 3-month Treasury yields (currently <strong>+0.82%</strong>) — the wider that gap, the lower the recession risk. The probability moved <strong>up 0.7 percentage points</strong> from last month. One caveat worth keeping in mind: this model was originally calibrated on US data from 1960 to 1994. The post-2008 era of central bank bond-buying and forward guidance changed how the yield curve connects to the real economy — the 2022–23 inversion, for instance, lasted far longer than the historical model would have predicted without triggering a recession. Treat the figure as a useful reference point, not a precise forecast.</p>
+    <p>Inflation is currently <strong>Normal</strong>. &ldquo;Normal&rdquo; here is a specific, model-defined thing: CPI is within half a standard deviation of its own <strong>20-year rolling average</strong>. One caveat that matters for reading this: the trailing 20-year window now includes the 2021&ndash;2023 inflation surge, which pulled that average up and widened the range the model treats as &ldquo;normal.&rdquo; Right now it is actually sitting <strong>modestly above</strong> that 20-year average — about <strong>+0.40 standard deviations</strong> — so &ldquo;normal&rdquo; here means normal <em>by recent historical standards, not back at the Fed&rsquo;s 2% target</em>. The practical takeaway: price growth is no longer alarming and gives the Fed room to move rates in either direction, but it has not fully returned to the 2% goal &mdash; a stable backdrop, not an all-clear.</p>
+    <p>Our <strong>Financial Conditions Gauge</strong> reads <strong style='color:#16a34a'>Risk-On</strong> (+0.34 on a −1 to +1 scale). It combines three signals: <em>high-yield credit spreads</em> (do investors trust risky borrowers?), <em>real interest rates</em> (the interest rate after you subtract inflation), and the <em>yield curve shape</em> (is the bond market worried about a slowdown?). All three inputs are pointing in a healthy direction: junk bond spreads are tight (investors aren't demanding a big premium to hold risky corporate debt), real interest rates are supportive, and the yield curve isn't sending stress signals. Historically, conditions like these have been favorable for stocks and other risk assets.</p>
+  </div>
+
+  <div class="sec">
+    <h2>Bottom Line</h2>
+    <p>Taken together, the signals point to a relatively benign macro environment. Recession risk is low, inflation is not a major headwind, and the risk gauge is not flashing red. That doesn't mean markets can't fall — they can, for all kinds of reasons — but the systematic macro backdrop isn't screaming danger.</p><p><em>All figures are model outputs based on public data — not investment advice.</em></p>
+  </div>
+
+  <div class="sec">
+    <h2>Voices</h2>
+    <p class="sub">What global economic leaders are saying this week</p>
+    <div class="voices"><div class="voice-card"><div class="voice-quote">&#8220;If there were people in the household or the business sector and the financial markets who thought that this central bank was going to be comfortable with an inflation objective above 2%, well, I guess they'd be disappointed.&#8221;</div><div class="attr"><strong>Kevin Warsh &nbsp;&middot;&nbsp; Chair, Federal Reserve</strong><a href="https://finance.yahoo.com/economy/policy/article/kevin-warsh-fed-will-not-be-comfortable-with-inflation-above-2-183000837.html">ECB Forum on Central Banking, Sintra — July 1, 2026</a></div></div><div class="voice-card"><div class="voice-quote">&#8220;Resilience means the ECB can raise rates to address inflation without fear it becomes a source of financial stress.&#8221;</div><div class="attr"><strong>Christine Lagarde &nbsp;&middot;&nbsp; President, European Central Bank</strong><a href="https://www.ecb.europa.eu/press/key/date/2026/html/ecb.sp260629~cb5a2e2168.en.html">ECB Forum on Central Banking, Sintra — June 29, 2026</a></div></div><div class="voice-card"><div class="voice-quote">&#8220;You can't afford not to deepen trade relations with other countries out there.&#8221;</div><div class="attr"><strong>Pierre-Olivier Gourinchas &nbsp;&middot;&nbsp; Economic Counsellor (outgoing), International Monetary Fund</strong><a href="https://www.investing.com/news/economy-news/outgoing-imf-chief-economist-sees-risks-shifting-trade-ties-and-continued-uncertainty-on-global-outlook-4763560">On trade fragmentation and EU agreements with Latin America and India — June 2026</a></div></div><div class="voice-card"><div class="voice-quote">&#8220;Barring a miracle, the 2020s will prove to be what their ominous opening foreshadowed: a lost decade — not just for a couple of outliers, but for dozens of developing economies.&#8221;</div><div class="attr"><strong>Indermit Gill &nbsp;&middot;&nbsp; Chief Economist & Senior VP, World Bank Group</strong><a href="https://www.worldbank.org/en/publication/global-economic-prospects">Foreword, Global Economic Prospects — June 12, 2026</a></div></div><div class="voice-card"><div class="voice-quote">&#8220;The board is determined to ensure that expectations of higher inflation do not become embedded in price and wage setting decisions.&#8221;</div><div class="attr"><strong>Michele Bullock &nbsp;&middot;&nbsp; Governor, Reserve Bank of Australia</strong><a href="https://www.centralbanking.com/central-banks/monetary-policy/monetary-policy-decisions/7976613/rba-remains-on-hold-and-says-inflation-still-too-high">Post-meeting statement, RBA rates decision — August 11, 2026</a></div></div></div>
+  </div>
+
+  <div class="sec">
+    <h2>Resources</h2>
+    <div class="links">
+      <a href="https://trevmon28.github.io/macro-dashboard/">&#8594; Live Dashboard</a>
+      <a href="https://trevmon28.github.io/macro-dashboard/paper.html">&#8594; Methodology Paper</a>
+      <a href="https://trevmon28.github.io/macro-dashboard/newsletter/">&#8594; Archive</a>
+    </div>
+  </div>
+
+  <div class="footer">
+    Global Macro Pulse is generated automatically from public data (FRED, OECD, IMF WEO, World Bank).<br>
+    Not investment advice. &nbsp;·&nbsp; <a href="https://trevmon28.github.io/macro-dashboard/newsletter/">View archive</a>
+  </div>
+
+</div>
+</body>
+</html>

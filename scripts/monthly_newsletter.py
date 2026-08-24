@@ -1003,12 +1003,28 @@ def render_html(snap, ind, sb, issue_number, issue_date, email_mode=False):
     pulse = snap.get("global_growth_pulse")
     pulse_str = f"{pulse:.1f}%" if pulse is not None else "—"
 
-    # Header tagline — global framing
+    # Header tagline — global-wide indicators only. Medians are taken across the
+    # major economies (~80% of global GDP, matching the GDP-weighted growth
+    # pulse); the US-specific gauges (recession risk, inflation regime, financial
+    # conditions) live in the US Spotlight section below, not the headline.
+    _sbm = sb[sb["basket"] == "Major"] if "basket" in sb.columns else sb
+
+    def _gmed(col):
+        s = _sbm[col].dropna() if col in _sbm.columns else pd.Series(dtype=float)
+        return float(s.median()) if not s.empty else None
+
+    def _gstr(v, fmt):
+        return f"{v:{fmt}}" if v is not None else "—"
+
+    g_infl = _gmed("inflation")
+    g_ytd  = _gmed("stock_ytd")
+    g_rate = _gmed("policy_rate")
+
     tagline_items = [
         f"<span>Global growth: <strong>{pulse_str}</strong></span>",
-        f"<span>US recession risk: <strong>{rec_pct}%</strong></span>",
-        f"<span>US inflation: <strong>{regime}</strong></span>",
-        f"<span>Financial conditions: <strong>{risk_label}</strong></span>",
+        f"<span>Global inflation: <strong>{_gstr(g_infl, '.1f')}%</strong></span>",
+        f"<span>Global equities YTD: <strong>{_gstr(g_ytd, '+.1f')}%</strong></span>",
+        f"<span>Median policy rate: <strong>{_gstr(g_rate, '.2f')}%</strong></span>",
     ]
     tagline = "".join(tagline_items)
 

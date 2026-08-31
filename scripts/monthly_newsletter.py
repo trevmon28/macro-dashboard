@@ -332,8 +332,9 @@ def country_snapshot_html(sb, email_mode=False):
         "current_account": [(0.0, "g"), (-3.0, "a"), (None, "r")],
         "govt_debt":       [(60.0, "g"), (90.0, "a"), (None, "r")], # low = good
         "stock_ytd":       [(0.0, "g"), (-10.0, "a"), (None, "r")],
+        "mktcap_gdp":      [(75.0, "g"), (150.0, "a"), (None, "r")], # low = cheaper (Buffett)
     }
-    LOW_IS_GOOD = {"inflation", "unemployment", "govt_debt"}
+    LOW_IS_GOOD = {"inflation", "unemployment", "govt_debt", "mktcap_gdp"}
 
     def _color(v, col):
         if col not in THRESHOLDS or pd.isna(v):
@@ -366,7 +367,7 @@ def country_snapshot_html(sb, email_mode=False):
         cls = _color(fv, col)
         if col in ("gdp_actual", "gdp_forecast", "current_account", "stock_ytd"):
             txt = f"{fv:+.1f}"
-        elif col == "govt_debt":
+        elif col in ("govt_debt", "mktcap_gdp"):
             txt = f"{int(round(fv))}"
         else:
             txt = f"{fv:.2f}" if col == "policy_rate" else f"{fv:.1f}"
@@ -386,6 +387,11 @@ def country_snapshot_html(sb, email_mode=False):
             "current_account", "govt_debt", "policy_rate", "stock_ytd"]
     HDRS = ["GDP %<br>Actual", "GDP %<br>Forecast", "CPI %", "Unemp %",
             "Curr Acct<br>% GDP", "Govt Debt<br>% GDP", "Policy<br>Rate %", "Stock<br>YTD %"]
+    # The Buffett column (market cap / GDP) is web-archive only; the email stays
+    # at 8 columns to hold its width and stay under Gmail's clip limit.
+    if not email_mode:
+        COLS = COLS + ["mktcap_gdp"]
+        HDRS = HDRS + ["Mkt Cap<br>% GDP"]
     hdr = "".join(f"<th>{h}</th>" for h in HDRS)
 
     def _basket_table(part):

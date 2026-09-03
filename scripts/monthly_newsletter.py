@@ -917,14 +917,23 @@ def expert_commentary_html(snap):
 VOICES = [
     {
         "quote": (
-            "If there were people in the household or the business sector and the financial "
-            "markets who thought that this central bank was going to be comfortable with an "
-            "inflation objective above 2%, well, I guess they'd be disappointed."
+            "All countries need to tackle their fiscal problems and formulate and present "
+            "credible plans to ensure their debt and deficits are on a sustainable path."
+        ),
+        "name": "Kristalina Georgieva",
+        "title": "Managing Director, International Monetary Fund",
+        "context": "Briefing ahead of the G20 finance ministers' meeting, Asheville, NC — August 26, 2026",
+        "source": "https://www.sanjuandailystar.com/post/imf-s-georgieva-says-global-economy-weathering-energy-shock-sees-fiscal-concerns",
+    },
+    {
+        "quote": (
+            "Secular stagnation seems like a description of a past long ago. "
+            "The new period is one of secular growth."
         ),
         "name": "Kevin Warsh",
         "title": "Chair, Federal Reserve",
-        "context": "ECB Forum on Central Banking, Sintra — July 1, 2026",
-        "source": "https://finance.yahoo.com/economy/policy/article/kevin-warsh-fed-will-not-be-comfortable-with-inflation-above-2-183000837.html",
+        "context": "G20 finance ministers' meeting, Asheville, NC — August 31, 2026",
+        "source": "https://www.cnbc.com/2026/08/31/g20-finance-meeting-live-updates.html",
     },
     {
         "quote": (
@@ -1028,7 +1037,7 @@ def render_html(snap, ind, sb, issue_number, issue_date, email_mode=False):
 
     tagline_items = [
         f"<span>Global growth: <strong>{pulse_str}</strong></span>",
-        f"<span>Global inflation: <strong>{_gstr(g_infl, '.1f')}%</strong></span>",
+        f"<span>Global inflation: <strong>{_gstr(g_infl, '.1f')}%</strong><sup>*</sup></span>",
         f"<span>Global equities YTD: <strong>{_gstr(g_ytd, '+.1f')}%</strong></span>",
         f"<span>Median policy rate: <strong>{_gstr(g_rate, '.2f')}%</strong></span>",
     ]
@@ -1072,6 +1081,7 @@ def render_html(snap, ind, sb, issue_number, issue_date, email_mode=False):
     <h1>Global Macro Pulse</h1>
     <p class="issue">Issue #{issue_number} &nbsp;·&nbsp; {date_str} &nbsp;·&nbsp; Data as of {as_of}</p>
     <p class="tagline">{tagline}</p>
+    <p style="margin:10px 0 0;font-size:11px;color:#94a3b8;line-height:1.5;font-style:italic">* Global inflation is the median CPI across the 12 major economies (~80% of global GDP), not a single GDP-weighted index.</p>
   </div>
 
   <div class="sec">
